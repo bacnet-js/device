@@ -12,9 +12,7 @@ We try to adhere to the following conventions:
 ## Cocogitto
 
 This project uses [cocogitto](https://github.com/cocogitto/cocogitto) to manage
-commit messages and generate the changelog automatically.
-
-## How to
+commit messages, release tags and generate the changelog automatically.
 
 ### Initialize cocogitto
 
@@ -22,6 +20,8 @@ commit messages and generate the changelog automatically.
 cog install-hook --all
 ```
 
-### Update the changelog
+### Bump version and release
 
-
+```sh
+cog bump --auto
+```
