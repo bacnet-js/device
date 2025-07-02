@@ -1,0 +1,30 @@
+
+# Install these hooks with `cog install-hook --all`
+
+[git_hooks.pre-commit]
+script = """#!/bin/sh
+set -e
+"""
+
+[git_hooks.commit-msg]
+script = """#!/bin/sh
+set -e
+cog verify --file $1
+cog check
+"""
+
+pre_bump_hooks = [
+  "npm run build",
+  "npm run test",
+  "npm version --no-commit-hooks --no-git-tag-version {{version}}",
+  "git add package.json package-lock.json",
+  "echo 'bump from {{latest}} to {{version}}'",
+  "exit 1" # Fail on purpose here
+]
+
+post_bump_hooks = [
+    "git push",
+    "git push origin {{version}}",
+    "npm publish"
+]
+

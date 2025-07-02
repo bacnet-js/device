@@ -1,0 +1,50 @@
+{
+  "name": "@bacnet-js/device",
+  "version": "0.0.3",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "docs": "typedoc --excludeInternal --out ./docs src/index.ts",
+    "clean": "rm -rf ./dist",
+    "build": "npm run clean && tsc -p .",
+    "hooks": "cog install-hook --all",
+    "test": "echo \"done\""
+  },
+  "author": "Jacopo Scazzosi <jacopo@scazzosi.com>",
+  "license": "MIT",
+  "description": "A TypeScript library for implementing BACnet IP devices in Node.js.",
+  "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/node": "^24.0.4",
+    "typedoc": "^0.28.5",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@bacnet-js/client": "^2.1.4",
+    "debug": "^4.4.1",
+    "fastq": "^1.19.1"
+  },
+  "homepage": "https://github.com/bacnet-js/device",
+  "bugs": "https://github.com/bacnet-js/device/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bacnet-js/device.git"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "CONFORMANCE.md"
+  ],
+  "keywords": [
+    "bacnet",
+    "device",
+    "ashrae",
+    "object",
+    "property"
+  ]
+}
