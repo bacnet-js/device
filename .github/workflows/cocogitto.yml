@@ -1,0 +1,30 @@
+# This workflow checks commit messages using cocogitto's docker image.
+# I decided to use a docker image rather than cocogitto's github action
+# to keep things as portable as possible and to easily replicate the
+# workflow locally.
+
+name: check commit messages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-commit-messages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Pull cocogitto's docker image
+        run: docker pull ghcr.io/cocogitto/cog:latest
+      - name: Check commits using cocogitto
+        run: docker run -t -v "$GITHUB_WORKSPACE":/app/ ghcr.io/cocogitto/cog:latest check
+      - name: Check PR title using cocogitto
+        if: github.event_name == 'pull_request'
+        run: docker run -t ghcr.io/cocogitto/cog:latest verify "${{ github.event.pull_request.title }}"
+      
