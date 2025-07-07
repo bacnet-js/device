@@ -19,77 +19,137 @@ import {
 } from '@bacnet-js/client';
 
 import { BDError } from '../errors.js';
-import { BDAbstractProperty, BDPropertyType, type BDPropertyAccessContext } from './abstract.js';
+import { BDAbstractProperty } from './abstract.js';
+import { BDPropertyType, type BDPropertyAccessContext } from './types.js';
 
 
-
-/**
- * Implementation of a BACnet property with a single value.
- * 
- * @typeParam Tag - The BACnet application tag for the property value
- * @typeParam Type - The JavaScript type corresponding to the application tag
- */
-export class BDSingletProperty<
+export abstract class BDAbstractSingletProperty<
   Tag extends ApplicationTag, 
-  Type extends ApplicationTagValueTypeMap[Tag] = ApplicationTagValueTypeMap[Tag]
-> extends BDAbstractProperty<Tag, Type, BACNetAppData<Tag, Type>> {
+  Type extends ApplicationTagValueTypeMap[Tag]
+> extends BDAbstractProperty<Tag, Type, BACNetAppData<Tag, Type>> { 
   
-  type: BDPropertyType = BDPropertyType.SINGLET;
+  declare readonly type: BDPropertyType.SINGLET;
   
-  constructor(
-    identifier: PropertyIdentifier, 
-    type: Tag, 
-    writable: boolean, 
-    value: Type | ((ctx: BDPropertyAccessContext) => Type), 
-    encoding?: CharacterStringEncoding,
-  ) { 
-    super(identifier, writable, typeof value === 'function' 
-      ? (ctx) => ({ type, value: (value as Function)(ctx), encoding })
-      : { type, value, encoding }
-    );
+  abstract getValue(ctx?: BDPropertyAccessContext): Promise<Type>;
+  abstract setValue(value: Type): Promise<void>;
+  
+  abstract ___getData(ctx: BDPropertyAccessContext): BACNetAppData<Tag, Type>;
+  abstract ___setData(data: BACNetAppData<Tag, Type>): Promise<void>;
+
+  constructor(identifier: PropertyIdentifier) {
+    super(BDPropertyType.SINGLET, identifier);
+    this.type = BDPropertyType.SINGLET;
   }
   
-  getValue(): Type {
-    return this.getData().value;
+}
+
+
+
+export class BDPolledSingletProperty<
+  Tag extends ApplicationTag, 
+  Type extends ApplicationTagValueTypeMap[Tag] = ApplicationTagValueTypeMap[Tag],
+> extends BDAbstractSingletProperty<Tag, Type> { 
+  
+  #poll: (ctx: BDPropertyAccessContext) => Type;
+  #data: BACNetAppData<Tag, Type>;
+  
+  constructor(identifier: PropertyIdentifier, type: Tag, poll: (ctx: BDPropertyAccessContext) => Type, encoding?: CharacterStringEncoding) {
+    super(identifier);
+    this.#poll = poll;
+    this.#data = { type, value: poll({ date: new Date() }), encoding };
+  }
+
+  async getData(ctx?: BDPropertyAccessContext) {
+    return this.___queue.run(async () => this.___getData(ctx))
+  }
+  
+  async getValue(ctx?: BDPropertyAccessContext): Promise<Type> {
+    return (await this.getData()).value;
+  }
+  
+  ___getData(ctx?: BDPropertyAccessContext): BACNetAppData<Tag, Type> {
+    this.#data.value = this.#poll(ctx ?? { date: new Date() });
+    return this.#data;
+  }
+
+  ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData | BACNetAppData[] {
+    return this.___getData(ctx);
+  }
+  
+  async setData() {
+    throw new BDError('Cannot set data of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
+  }
+  
+  async setValue() {
+    throw new BDError('Cannot set value of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
+  }
+  
+  async ___setData() {
+    throw new BDError('Cannot set data of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
+  }
+  
+  async ___writeData() {
+    throw new BDError('Cannot write data of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
+  }
+  
+}
+
+export class BDSingletProperty<
+  Tag extends ApplicationTag, 
+  Type extends ApplicationTagValueTypeMap[Tag] = ApplicationTagValueTypeMap[Tag],
+> extends BDAbstractSingletProperty<Tag, Type> { 
+  
+  #writable: boolean;
+  #data: BACNetAppData<Tag, Type>;
+  
+  constructor(identifier: PropertyIdentifier, type: Tag, writable: boolean, value: Type, encoding?: CharacterStringEncoding) {
+    super(identifier);
+    this.#data = { type, value, encoding };
+    this.#writable = writable;
+  }
+
+  async getData(ctx?: BDPropertyAccessContext): Promise<BACNetAppData<Tag, Type>> {
+    return this.___queue.run(async () => this.___getData(ctx));
+  }
+  
+  async getValue(ctx?: BDPropertyAccessContext): Promise<Type> { 
+    return (await this.getData()).value;
+  }
+  
+  ___getData(ctx?: BDPropertyAccessContext) {
+    return this.#data;
+  }
+  
+  async ___setData(data: BACNetAppData<Tag, Type>): Promise<void> {
+    await this.___asyncEmitSeries(true, 'beforecov', this, data);
+    this.#data = data;
+    await this.___asyncEmitSeries(false, 'aftercov', this, data);
+  }
+  
+  async setData(data: BACNetAppData<Tag, Type>) {
+    return this.___queue.run(() => this.___setData(data));
   }
   
   async setValue(value: Type): Promise<void> {
-    await this.setData({ ...this.getData(), value });
+    return this.___queue.run(() => this.___setData({ ...this.___getData(), value }));
   }
   
-  
-  /**
-   * 
-   * @internal
-   */
-  ___readData(index: number): BACNetAppData | BACNetAppData[] {
-    return this.getData();
+  ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData | BACNetAppData[] {
+    return this.___getData(ctx);
   }
   
-  /**
-   * Writes a new value to this property for BACnet operations
-   * 
-   * This internal method is used by BACnet objects to write the property value
-   * when handling BACnet protocol operations.
-   * 
-   * @param value - The new value to write in BACnet format
-   * @returns A promise that resolves when the value has been set
-   * @throws BACnetError if the property is not writable or the value type is invalid
-   * @internal
-   */
-  async ___writeData(value: BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[]): Promise<void> { 
-    if (!this.isWritable()) { 
+  async ___writeData(data: BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[]) { 
+    if (!this.#writable) { 
       throw new BDError('not writable', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
     }
-    if (Array.isArray(value)) { 
-      if (value.length !== 1) {
-        throw new BDError('not a list', ErrorCode.REJECT_INVALID_PARAMETER_DATA_TYPE, ErrorClass.PROPERTY);
-      } else { 
-        value = value[0];
+    if (Array.isArray(data)) { 
+      if (data.length !== 1) { 
+        throw new BDError('property is not an array or list', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
+      } else {
+        data = data[0];
       }
     }
-    await this.___updateData(value);
+    await this.setData(data);
   }
   
- 
 }

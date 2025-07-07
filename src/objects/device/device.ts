@@ -15,6 +15,8 @@ import {
 import { 
   BDAbstractProperty,
   BDArrayProperty, 
+  BDPolledArrayProperty, 
+  BDPolledSingletProperty, 
   BDSingletProperty,
 } from '../../properties/index.js';
 
@@ -121,13 +123,13 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   
   readonly #knownDevices: Map<number, IAMResult>;
   
-  readonly objectList: BDArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
-  readonly structuredObjectList: BDArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
+  readonly objectList: BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
+  readonly structuredObjectList: BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
   readonly protocolVersion: BDSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
   readonly protocolRevision: BDSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
   readonly protocolServicesSupported: BDSingletProperty<ApplicationTag.BIT_STRING>;
   readonly protocolObjectTypesSupported: BDSingletProperty<ApplicationTag.BIT_STRING>;
-  readonly activeCovSubscriptions: BDArrayProperty<ApplicationTag.COV_SUBSCRIPTION>;
+  readonly activeCovSubscriptions: BDPolledArrayProperty<ApplicationTag.COV_SUBSCRIPTION>;
   readonly vendorIdentifier: BDSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
   readonly vendorName: BDSingletProperty<ApplicationTag.CHARACTER_STRING>;
   readonly modelName: BDSingletProperty<ApplicationTag.CHARACTER_STRING>;
@@ -143,10 +145,10 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   readonly apduSegmentTimeout: BDSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
   readonly segmentationSupported: BDSingletProperty<ApplicationTag.ENUMERATED, Segmentation>;
   readonly maxSegmentsAccepted: BDSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
-  readonly utcOffset: BDSingletProperty<ApplicationTag.SIGNED_INTEGER>;
-  readonly localDate: BDSingletProperty<ApplicationTag.DATE>;
-  readonly localTime: BDSingletProperty<ApplicationTag.TIME>;
-  readonly daylightSavingsStatus: BDSingletProperty<ApplicationTag.BOOLEAN>;
+  readonly utcOffset: BDPolledSingletProperty<ApplicationTag.SIGNED_INTEGER>;
+  readonly localDate: BDPolledSingletProperty<ApplicationTag.DATE>;
+  readonly localTime: BDPolledSingletProperty<ApplicationTag.TIME>;
+  readonly daylightSavingsStatus: BDPolledSingletProperty<ApplicationTag.BOOLEAN>;
   readonly systemStatus: BDSingletProperty<ApplicationTag.ENUMERATED, DeviceStatus>;
   
 
@@ -196,11 +198,11 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     
     // ================== PROPERTIES RELATED TO CHILD OBJECTS =================
     
-    this.objectList = this.addProperty(new BDArrayProperty<ApplicationTag.OBJECTIDENTIFIER>(
-      PropertyIdentifier.OBJECT_LIST, false, () => this.#objectData));
+    this.objectList = this.addProperty(new BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>(
+      PropertyIdentifier.OBJECT_LIST, () => this.#objectData));
     
-    this.structuredObjectList = this.addProperty(new BDArrayProperty<ApplicationTag.OBJECTIDENTIFIER>(
-      PropertyIdentifier.STRUCTURED_OBJECT_LIST, false, () => this.#objectData));
+    this.structuredObjectList = this.addProperty(new BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>(
+      PropertyIdentifier.STRUCTURED_OBJECT_LIST, () => this.#objectData));
     
     // ====================== PROTOCOL-RELATED PROPERTIES =====================
     
@@ -234,8 +236,8 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     
     // ==================== SUBSCRIPTION-RELATED PROPERTIES ===================
     
-    this.activeCovSubscriptions = this.addProperty(new BDArrayProperty<ApplicationTag.COV_SUBSCRIPTION>(
-      PropertyIdentifier.ACTIVE_COV_SUBSCRIPTIONS, false, () => this.#subscriptions.getDeviceSubscriptionData()));
+    this.activeCovSubscriptions = this.addProperty(new BDPolledArrayProperty<ApplicationTag.COV_SUBSCRIPTION>(
+      PropertyIdentifier.ACTIVE_COV_SUBSCRIPTIONS, () => this.#subscriptions.getDeviceSubscriptionData()));
     
     // ========================== METADATA PROPERTIES =========================
     
@@ -294,17 +296,17 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     
     // ======================== TIME-RELATED PROPERTIES =======================
     
-    this.utcOffset = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.UTC_OFFSET, ApplicationTag.SIGNED_INTEGER, false, (ctx) => ctx.date.getTimezoneOffset() * -1));
+    this.utcOffset = this.addProperty(new BDPolledSingletProperty(
+      PropertyIdentifier.UTC_OFFSET, ApplicationTag.SIGNED_INTEGER, (ctx) => ctx.date.getTimezoneOffset() * -1));
     
-    this.localDate = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.LOCAL_DATE, ApplicationTag.DATE, false, (ctx) => ctx.date));
+    this.localDate = this.addProperty(new BDPolledSingletProperty(
+      PropertyIdentifier.LOCAL_DATE, ApplicationTag.DATE, (ctx) => ctx.date));
     
-    this.localTime = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.LOCAL_TIME, ApplicationTag.TIME, false, (ctx) => ctx.date));
+    this.localTime = this.addProperty(new BDPolledSingletProperty(
+      PropertyIdentifier.LOCAL_TIME, ApplicationTag.TIME, (ctx) => ctx.date));
     
-    this.daylightSavingsStatus = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.DAYLIGHT_SAVINGS_STATUS, ApplicationTag.BOOLEAN, false, (ctx) => isDstInEffect(ctx.date)));
+    this.daylightSavingsStatus = this.addProperty(new BDPolledSingletProperty(
+      PropertyIdentifier.DAYLIGHT_SAVINGS_STATUS, ApplicationTag.BOOLEAN, (ctx) => isDstInEffect(ctx.date)));
     
     // ======================= STATUS-RELATED PROPERTIES ======================
     
@@ -378,12 +380,13 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    * @private
    */
   #covQueueWorker = async (cov: BDQueuedCov<any, any, any>) => {
-    for (const subscription of this.#subscriptions.getPropertySubscriptions(cov.property.uid)) {
+    const propertyUid = getPropertyUID(cov.object.uid, cov.property.identifier);
+    for (const subscription of this.#subscriptions.getPropertySubscriptions(propertyUid)) {
       if (cov.property.identifier === PropertyIdentifier.PRESENT_VALUE 
         && cov.property === subscription.property
         && subscription.object instanceof BDNumericObject 
         && subscription.lastDataSent
-        && Math.abs((cov.value as BACNetAppData<any, number>).value - (subscription.lastDataSent as BACNetAppData<any, number>).value) < subscription.object.covIncrement.getValue()
+        && Math.abs((cov.value as BACNetAppData<any, number>).value - (subscription.lastDataSent as BACNetAppData<any, number>).value) < (await subscription.object.covIncrement.getValue())
       ) { 
         continue;
       }
@@ -414,7 +417,10 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    * @private
    */
   #onChildAfterCov = async (object: BDObject, property: BDAbstractProperty<any, any, any>, value: BACNetAppData | BACNetAppData[]) => { 
-    await this.#covqueue.push({ object, property, value });
+    // We do not `await` the promise as we do not want slow consumers of
+    // confirmed CoV notifications in the BACnet network to indirectly block
+    // further operations on this object.
+    this.#covqueue.push({ object, property, value });
   }
 
 

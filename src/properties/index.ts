@@ -9,14 +9,20 @@
  * @module
  */
 
-export { 
-  type BDPropertyEvents, 
+export { BDAbstractProperty } from './abstract.js';
+
+export {  
+  BDSingletProperty,
+  BDPolledSingletProperty,
+} from './singlet.js';
+
+export {  
+  BDArrayProperty,
+  BDPolledArrayProperty,
+} from './array.js';
+
+export {
+  type BDPropertyEvents,
   type BDPropertyAccessContext,
-  type BDPropertyDataGetter as BDPropertyValueGetter,
   BDPropertyType,
-  BDAbstractProperty,
-} from './abstract.js';
-
-export {  BDSingletProperty } from './singlet.js';
-
-export {  BDArrayProperty } from './array.js';
+} from './types.js';

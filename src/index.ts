@@ -28,12 +28,13 @@ export {
 
 export {
   type BDPropertyEvents,
-  type BDPropertyValueGetter,
   type BDPropertyAccessContext,
   BDPropertyType,
   BDAbstractProperty,
   BDArrayProperty, 
+  BDPolledArrayProperty,
   BDSingletProperty,
+  BDPolledSingletProperty,
 } from './properties/index.js';
 
 export { 

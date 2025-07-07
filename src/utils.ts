@@ -1,7 +1,4 @@
 
-import type { BDSubscription,  BDQueuedCov } from './objects/device/types.js';
-import type { BDDevice } from './objects/device/device.js';
-
 import bacnet, { ApplicationTag } from '@bacnet-js/client';
 
 const { default: BACnetClient } = bacnet;

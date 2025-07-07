@@ -37,7 +37,8 @@ import type {
 import {
   BDAbstractProperty,
   BDSingletProperty,
-  BDArrayProperty,
+  BDPolledArrayProperty,
+  type BDPropertyAccessContext,
 } from '../../properties/index.js';
 
 import { ensureArray } from '../../utils.js';
@@ -45,7 +46,7 @@ import { ensureArray } from '../../utils.js';
 import { MAX_ARRAY_INDEX } from '../../constants.js';
 
 import { TaskQueue } from '../../taskqueue.js';
-import type { BDPropertyAccessContext } from '../../properties/abstract.js';
+
 import { getObjectUID, type BDObjectUID } from '../../uids.js';
 
 /**
@@ -107,7 +108,7 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
   readonly objectName: BDSingletProperty<ApplicationTag.CHARACTER_STRING>;
   readonly objectType: BDSingletProperty<ApplicationTag.ENUMERATED, ObjectType>;
   readonly objectIdentifier: BDSingletProperty<ApplicationTag.OBJECTIDENTIFIER>;
-  readonly propertyList: BDArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>;
+  readonly propertyList: BDPolledArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>;
   readonly description: BDSingletProperty<ApplicationTag.CHARACTER_STRING>;
   readonly outOfService: BDSingletProperty<ApplicationTag.BOOLEAN>;
   readonly statusFlags: BDSingletProperty<ApplicationTag.BIT_STRING>;
@@ -140,8 +141,8 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     this.objectIdentifier = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.OBJECT_IDENTIFIER, ApplicationTag.OBJECTIDENTIFIER, false, this.identifier));
     
-    this.propertyList = this.addProperty(new BDArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>(
-      PropertyIdentifier.PROPERTY_LIST, false,  () => this.#propertyList));
+    this.propertyList = this.addProperty(new BDPolledArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>(
+      PropertyIdentifier.PROPERTY_LIST, () => this.#propertyList));
     
     this.description = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.DESCRIPTION, ApplicationTag.CHARACTER_STRING, false, description));
@@ -179,9 +180,8 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     if (!unlistedProperties.includes(property.identifier)) { 
       this.#propertyList.push({ type: ApplicationTag.ENUMERATED, value: property.identifier });
     }
-    property.___setQueue(this.#queue);
-    property.___setUid(this.identifier);
     property.on('aftercov', this.#onPropertyAfterCov);
+    property.___setTaskQueue(this.#queue);
     return property;
   }
 
