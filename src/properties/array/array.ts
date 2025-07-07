@@ -36,16 +36,28 @@ export class BDArrayProperty<
     await this.___queue.run(() => this.___setData(data));
   }
   
+  /**
+   * 
+   * @internal
+   */
   ___getData(ctx?: BDPropertyAccessContext): BACNetAppData<Tag, Type>[] {
     return this.#data;
   }
-  
+
+  /**
+   * 
+   * @internal
+   */
   async ___setData(data: BACNetAppData<Tag, Type>[]) { 
     await this.___asyncEmitSeries(true, 'beforecov', this, data);
     this.#data = data;
     await this.___asyncEmitSeries(false, 'aftercov', this, data);
   }
 
+  /**
+   * 
+   * @internal
+   */
   async ___writeData(data: BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[]) { 
     if (!this.#writable) { 
       throw new BDError('not writable', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);

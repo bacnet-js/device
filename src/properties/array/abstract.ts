@@ -14,7 +14,10 @@ import { BDPropertyType, type BDPropertyAccessContext } from './../types.js';
 
 import { MAX_ARRAY_INDEX } from '../../constants.js';
 
-
+/**
+ * Abstract base class for properties having an array or list of items as their
+ * data.
+ */
 export abstract class BDAbstractArrayProperty<
   Tag extends ApplicationTag, 
   Type extends ApplicationTagValueTypeMap[Tag]
@@ -27,8 +30,16 @@ export abstract class BDAbstractArrayProperty<
     this.type = BDPropertyType.ARRAY;
   }
   
+  /**
+   * 
+   * @internal
+   */
   abstract ___getData(ctx: BDPropertyAccessContext): BACNetAppData<Tag, Type>[];
   
+  /**
+   * 
+   * @internal
+   */
   ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData<ApplicationTag.UNSIGNED_INTEGER> | BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[] {
     const data = this.___getData(ctx);
     if (index === 0) {

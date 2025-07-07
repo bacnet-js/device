@@ -38,7 +38,11 @@ export class BDSingletProperty<
   ___getData(ctx?: BDPropertyAccessContext) {
     return this.#data;
   }
-  
+
+  /**
+   * 
+   * @internal
+   */
   async ___setData(data: BACNetAppData<Tag, Type>): Promise<void> {
     await this.___asyncEmitSeries(true, 'beforecov', this, data);
     this.#data = data;
@@ -52,11 +56,19 @@ export class BDSingletProperty<
   async setValue(value: Type): Promise<void> {
     return this.___queue.run(() => this.___setData({ ...this.___getData(), value }));
   }
-  
+
+  /**
+   * 
+   * @internal
+   */
   ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData | BACNetAppData[] {
     return this.___getData(ctx);
   }
-  
+
+  /**
+   * 
+   * @internal
+   */
   async ___writeData(data: BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[]) { 
     if (!this.#writable) { 
       throw new BDError('not writable', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);

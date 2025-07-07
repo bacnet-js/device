@@ -38,13 +38,20 @@ export class BDPolledSingletProperty<
   async getValue(ctx?: BDPropertyAccessContext): Promise<Type> {
     return (await this.getData()).value;
   }
-  
+
+  /**
+   * 
+   * @internal
+   */  
   ___getData(ctx?: BDPropertyAccessContext): BACNetAppData<Tag, Type> {
     this.#data.value = this.#poll(ctx ?? { date: new Date() });
     return this.#data;
   }
 
-  ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData | BACNetAppData[] {
+  /**
+   * 
+   * @internal
+   */  ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData | BACNetAppData[] {
     return this.___getData(ctx);
   }
   
@@ -55,7 +62,11 @@ export class BDPolledSingletProperty<
   async setValue() {
     throw new BDError('Cannot set value of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
   }
-  
+
+  /**
+   * 
+   * @internal
+   */
   async ___writeData() {
     throw new BDError('Cannot write data of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
   }

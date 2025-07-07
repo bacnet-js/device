@@ -39,7 +39,11 @@ export class BDPolledArrayProperty<
   async getData(ctx?: BDPropertyAccessContext) {
     return Promise.resolve(this.___getData(ctx));
   }
-  
+
+  /**
+   * 
+   * @internal
+   */
   ___getData(ctx?: BDPropertyAccessContext): BACNetAppData<Tag, Type>[] {
     return this.#poll(ctx ?? { date: new Date() });
   }
@@ -47,7 +51,11 @@ export class BDPolledArrayProperty<
   async setData() {
     throw new BDError('Cannot set data of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
   }
-  
+
+  /**
+   * 
+   * @internal
+   */
   async ___writeData() { 
     throw new BDError('Cannot write data of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
   }
