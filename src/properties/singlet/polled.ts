@@ -32,7 +32,8 @@ export class BDPolledSingletProperty<
   }
 
   async getData(ctx?: BDPropertyAccessContext) {
-    return Promise.resolve(this.___getData(ctx));  }
+    return Promise.resolve(this.___getData(ctx));
+  }
   
   async getValue(ctx?: BDPropertyAccessContext): Promise<Type> {
     return (await this.getData()).value;
@@ -44,8 +45,7 @@ export class BDPolledSingletProperty<
   }
 
   ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData | BACNetAppData[] {
-    this.#data.value = this.#poll(ctx);
-    return this.#data;
+    return this.___getData(ctx);
   }
   
   async setData() {

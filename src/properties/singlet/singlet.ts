@@ -32,7 +32,7 @@ export class BDSingletProperty<
   }
   
   async getValue(ctx?: BDPropertyAccessContext): Promise<Type> { 
-    return (await this.getData()).value;
+    return this.___queue.run(async () => this.___getData(ctx).value);
   }
   
   ___getData(ctx?: BDPropertyAccessContext) {
@@ -68,7 +68,7 @@ export class BDSingletProperty<
         data = data[0];
       }
     }
-    await this.setData(data);
+    await this.___setData(data);
   }
   
 }
