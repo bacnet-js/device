@@ -37,15 +37,16 @@ import type {
 import {
   BDAbstractProperty,
   BDSingletProperty,
-  BDArrayProperty,
+  BDPolledArrayProperty,
+  type BDPropertyAccessContext,
 } from '../../properties/index.js';
 
 import { ensureArray } from '../../utils.js';
 
 import { MAX_ARRAY_INDEX } from '../../constants.js';
 
-import { TaskQueue } from '../../taskqueue.js';
-import type { BDPropertyAccessContext } from '../../properties/abstract.js';
+import { TaskQueue, type Task } from '../../taskqueue.js';
+
 import { getObjectUID, type BDObjectUID } from '../../uids.js';
 
 /**
@@ -107,7 +108,7 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
   readonly objectName: BDSingletProperty<ApplicationTag.CHARACTER_STRING>;
   readonly objectType: BDSingletProperty<ApplicationTag.ENUMERATED, ObjectType>;
   readonly objectIdentifier: BDSingletProperty<ApplicationTag.OBJECTIDENTIFIER>;
-  readonly propertyList: BDArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>;
+  readonly propertyList: BDPolledArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>;
   readonly description: BDSingletProperty<ApplicationTag.CHARACTER_STRING>;
   readonly outOfService: BDSingletProperty<ApplicationTag.BOOLEAN>;
   readonly statusFlags: BDSingletProperty<ApplicationTag.BIT_STRING>;
@@ -140,8 +141,8 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     this.objectIdentifier = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.OBJECT_IDENTIFIER, ApplicationTag.OBJECTIDENTIFIER, false, this.identifier));
     
-    this.propertyList = this.addProperty(new BDArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>(
-      PropertyIdentifier.PROPERTY_LIST, false,  () => this.#propertyList));
+    this.propertyList = this.addProperty(new BDPolledArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>(
+      PropertyIdentifier.PROPERTY_LIST, () => this.#propertyList));
     
     this.description = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.DESCRIPTION, ApplicationTag.CHARACTER_STRING, false, description));
@@ -179,10 +180,12 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     if (!unlistedProperties.includes(property.identifier)) { 
       this.#propertyList.push({ type: ApplicationTag.ENUMERATED, value: property.identifier });
     }
-    property.___setQueue(this.#queue);
-    property.___setUid(this.identifier);
     property.on('aftercov', this.#onPropertyAfterCov);
     return property;
+  }
+  
+  transaction<T>(task: Task<T>): Promise<T> {
+    return this.#queue.run(task);
   }
 
   /**
@@ -196,15 +199,13 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
    * @internal
    */
   async ___writeProperty(identifier: BACNetPropertyID, value: BACNetAppData | BACNetAppData[]): Promise<void> {
-    return this.#queue.run(async () => { 
-      const property = this.#properties.get(identifier.id as PropertyIdentifier);
-      // TODO: test/validate value before setting it!
-      if (property) {
-        await property.___writeData(value);
-      } else { 
-        throw new BDError('unknown property', ErrorCode.UNKNOWN_PROPERTY, ErrorClass.PROPERTY);    
-      }
-    });
+    const property = this.#properties.get(identifier.id as PropertyIdentifier);
+    // TODO: test/validate value before setting it!
+    if (property) {
+      await property.___writeData(value);
+    } else { 
+      throw new BDError('unknown property', ErrorCode.UNKNOWN_PROPERTY, ErrorClass.PROPERTY);    
+    }
   }
   
   /**
@@ -218,14 +219,12 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
    * @internal
    */
   async ___readProperty(identifier: BACNetPropertyID): Promise<BACNetAppData | BACNetAppData[]> {
-    return this.#queue.run(async () => {
-      const ctx: BDPropertyAccessContext = { date: new Date() };
-      const property = this.#properties.get(identifier.id);
-      if (property) { 
-        return property.___readData(identifier.index, ctx);
-      }
-      throw new BDError('unknown property', ErrorCode.UNKNOWN_PROPERTY, ErrorClass.PROPERTY);
-    });
+    const ctx: BDPropertyAccessContext = { date: new Date() };
+    const property = this.#properties.get(identifier.id);
+    if (property) { 
+      return property.___readData(identifier.index, ctx);
+    }
+    throw new BDError('unknown property', ErrorCode.UNKNOWN_PROPERTY, ErrorClass.PROPERTY);
   }
   
   /**
@@ -238,20 +237,18 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
    * @internal
    */
   async ___readPropertyMultipleAll(): Promise<BACNetReadAccess> { 
-    return this.#queue.run(async () => {
-      const ctx: BDPropertyAccessContext = { date: new Date() };
-      const values: BACNetReadAccess['values'] = [];
-      for (const [identifier, property] of this.#properties.entries()) {
-        values.push({
-          property: {
-            id: identifier,
-            index: MAX_ARRAY_INDEX,
-          },
-          value: ensureArray(property.___readData(MAX_ARRAY_INDEX, ctx)),
-        });
-      }
-      return { objectId: this.identifier, values };
-    });
+    const ctx: BDPropertyAccessContext = { date: new Date() };
+    const values: BACNetReadAccess['values'] = [];
+    for (const [identifier, property] of this.#properties.entries()) {
+      values.push({
+        property: {
+          id: identifier,
+          index: MAX_ARRAY_INDEX,
+        },
+        value: ensureArray(property.___readData(MAX_ARRAY_INDEX, ctx)),
+      });
+    }
+    return { objectId: this.identifier, values };
   }
   
   /**
@@ -268,20 +265,18 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     if (identifiers.length === 1 && identifiers[0].id === PropertyIdentifier.ALL) {
       return this.___readPropertyMultipleAll();
     }
-    return this.#queue.run(async () => {
-      const ctx: BDPropertyAccessContext = { date: new Date() };
-      const values: BACNetReadAccess['values'] = [];
-      for (const identifier of identifiers) {
-        const property = this.#properties.get(identifier.id);
-        if (property) { 
-          values.push({
-            property: identifier,
-            value: ensureArray(property.___readData(identifier.index, ctx))
-          })
-        }
+    const ctx: BDPropertyAccessContext = { date: new Date() };
+    const values: BACNetReadAccess['values'] = [];
+    for (const identifier of identifiers) {
+      const property = this.#properties.get(identifier.id);
+      if (property) { 
+        values.push({
+          property: identifier,
+          value: ensureArray(property.___readData(identifier.index, ctx))
+        });
       }
-      return { objectId: this.identifier, values };
-    });
+    }
+    return { objectId: this.identifier, values };
   }
   
   /**

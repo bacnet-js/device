@@ -4,6 +4,7 @@ import {
 } from '@bacnet-js/client';
 
 import { 
+    getPropertyUID,
   type BDPropertyUID, 
 } from '../../uids.js';
 
@@ -74,10 +75,11 @@ export class SubscriptionStore {
   }
   
   add(subscription: BDSubscription<any, any, any>) {
-    let propertySubscriptions = this.#propertySubs.get(subscription.property.uid);
+    const propertyUid = getPropertyUID(subscription.object.uid, subscription.property.identifier);
+    let propertySubscriptions = this.#propertySubs.get(propertyUid);
     if (!propertySubscriptions) {
       propertySubscriptions = [];
-      this.#propertySubs.set(subscription.property.uid, propertySubscriptions);
+      this.#propertySubs.set(propertyUid, propertySubscriptions);
     } 
     const previousSub = propertySubscriptions.find((existingSub) => {
       return existingSub.subscriber.address === subscription.subscriber.address

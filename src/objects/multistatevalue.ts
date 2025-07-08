@@ -3,7 +3,8 @@ import assert from 'node:assert';
 
 import { 
   BDSingletProperty,
-  BDArrayProperty,
+  BDPolledArrayProperty,
+  BDPolledSingletProperty,
 } from '../properties/index.js';
 
 import { BDObject } from './generic/object.js';
@@ -16,6 +17,7 @@ import {
   ErrorCode,
   type BACNetAppData,
 } from '@bacnet-js/client';
+
 import { BDError } from '../errors.js';
 
 export interface BDMultiStateValueOpts { 
@@ -28,9 +30,9 @@ export interface BDMultiStateValueOpts {
 
 export class BDMultiStateValue extends BDObject { 
   
-  readonly stateText: BDArrayProperty<ApplicationTag.CHARACTER_STRING>;
+  readonly stateText: BDPolledArrayProperty<ApplicationTag.CHARACTER_STRING>;
   readonly presentValue: BDSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
-  readonly numberOfStates: BDSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
+  readonly numberOfStates: BDPolledSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
   
   constructor(instance: number, opts: BDMultiStateValueOpts) {
     
@@ -40,15 +42,15 @@ export class BDMultiStateValue extends BDObject {
     
     const numberOfStatesValue = opts.states.length;
     
-    this.numberOfStates = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.NUMBER_OF_STATES, ApplicationTag.UNSIGNED_INTEGER, false, () => numberOfStatesValue));
+    this.numberOfStates = this.addProperty(new BDPolledSingletProperty(
+      PropertyIdentifier.NUMBER_OF_STATES, ApplicationTag.UNSIGNED_INTEGER, () => numberOfStatesValue));
     
     const stateTextData: BACNetAppData<ApplicationTag.CHARACTER_STRING>[] = opts.states.map((state) => { 
       return { type: ApplicationTag.CHARACTER_STRING, value: state };
     });
     
-    this.stateText = this.addProperty(new BDArrayProperty<ApplicationTag.CHARACTER_STRING>(
-      PropertyIdentifier.STATE_TEXT, false, () => stateTextData));
+    this.stateText = this.addProperty(new BDPolledArrayProperty<ApplicationTag.CHARACTER_STRING>(
+      PropertyIdentifier.STATE_TEXT, () => stateTextData));
     
     this.presentValue = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.PRESENT_VALUE, ApplicationTag.UNSIGNED_INTEGER, opts.writable ?? false, 1));

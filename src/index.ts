@@ -11,7 +11,10 @@
 
 export { BDError } from './errors.js';
 
-export { TaskQueue } from './taskqueue.js';
+export { 
+  type Task, 
+  TaskQueue,
+} from './taskqueue.js';
 
 export {
   type BDObjectUID,
@@ -28,12 +31,13 @@ export {
 
 export {
   type BDPropertyEvents,
-  type BDPropertyValueGetter,
   type BDPropertyAccessContext,
   BDPropertyType,
   BDAbstractProperty,
   BDArrayProperty, 
+  BDPolledArrayProperty,
   BDSingletProperty,
+  BDPolledSingletProperty,
 } from './properties/index.js';
 
 export { 
