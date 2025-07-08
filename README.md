@@ -86,6 +86,11 @@ device.on('error', (err) => {
 
 ### Adding an object to a device
 
+This library provides a collection of classes modeling BACnet object types.
+Instances must always be added to one (and only one) device. For any of the
+supported object types, instances of the respective class instantiate property
+attributes matching the properties defined in the BACnet specification.
+
 ```typescript
 import { BDAnalogValue } from 'bacnet-device';
 import { EngineeringUnits } from '@innovation-system/node-bacnet';
@@ -96,21 +101,43 @@ const analogValueObj = device.addObject(new BDAnalogValue(1, {
 }));
 ```
 
+### Accessing properties within transactions
+
+Properties should be accessed within object-level transactions, whether to
+read or write data, to guarantee consistency and prevent race conditions
+between operations originating from the BACnet network and those originating
+from consumers of this library.
+
+```typescript
+await analogValueObj.transaction(async () => {
+  const value = analogValueObj.presentValue.getValue();
+  await analogValueObj.presentValue.setValue(value * 2);
+});
+```
+
+### Getting the value of a property
+
+```typescript
+const value = analogValueObj.presentValue.getValue();
+```
+
 ### Changing property values
 
 ```typescript 
 await analogValueObj.presentValue.setValue(25.6);
 ```
 
-This will result in CoV events being sent to active subscriber, if present.
+This will result in CoV events being sent to active subscribers. CoV
+notifications for numeric objects are sent only when the change in value
+exceeds the threshold defined via the `covIncrement` property.
 
 ### Extending object classes
 
 Have a look at the source code for object classes implementing the simpler
 BACnet object types and use the same pattern in your code:
 
-- [`BDAnalogValue`](https://github.com/bacnet-js/device/blob/main/src/objects/analogvalue.ts)
-- [`BDIntegerValue`](https://github.com/bacnet-js/device/blob/main/src/objects/integervalue.ts)
+- [`BDAnalogValue`](https://github.com/bacnet-js/device/blob/main/src/objects/numeric/analogvalue.ts)
+- [`BDIntegerValue`](https://github.com/bacnet-js/device/blob/main/src/objects/numeric/integervalue.ts)
 
 
 [device]: https://github.com/bacnet-js/device
