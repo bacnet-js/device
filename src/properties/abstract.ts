@@ -61,21 +61,11 @@ export abstract class BDAbstractProperty<
   }
   
   /**
-   * Used by {@link BDObject} instances to set the task queue of this property
-   * to their own queue. 
-   * 
-   * @internal
-   */
-  ___setTaskQueue(queue: TaskQueue) {
-    this.___queue = queue;
-  }
-  
-  /**
    * Consumer-facing method to retrieve property data.
    * Implementations of this method should encapsulate retrieval logic as a
    * task that is executed via this property's task queue.
    */
-  abstract getData(ctx?: BDPropertyAccessContext): Promise<Data>;
+  abstract getData(ctx?: BDPropertyAccessContext): Data;
   
   /**
    * Consumer-facing method to set property data.

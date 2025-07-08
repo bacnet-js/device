@@ -45,7 +45,7 @@ import { ensureArray } from '../../utils.js';
 
 import { MAX_ARRAY_INDEX } from '../../constants.js';
 
-import { TaskQueue } from '../../taskqueue.js';
+import { TaskQueue, type Task } from '../../taskqueue.js';
 
 import { getObjectUID, type BDObjectUID } from '../../uids.js';
 
@@ -181,8 +181,11 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
       this.#propertyList.push({ type: ApplicationTag.ENUMERATED, value: property.identifier });
     }
     property.on('aftercov', this.#onPropertyAfterCov);
-    property.___setTaskQueue(this.#queue);
     return property;
+  }
+  
+  transaction<T>(task: Task<T>): Promise<T> {
+    return this.#queue.run(task);
   }
 
   /**

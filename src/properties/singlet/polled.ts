@@ -31,28 +31,20 @@ export class BDPolledSingletProperty<
     this.#data = { type, value: poll({ date: new Date() }), encoding };
   }
 
-  async getData(ctx?: BDPropertyAccessContext) {
-    return Promise.resolve(this.___getData(ctx));
-  }
-  
-  async getValue(ctx?: BDPropertyAccessContext): Promise<Type> {
-    return (await this.getData()).value;
-  }
-
-  /**
-   * 
-   * @internal
-   */  
-  ___getData(ctx?: BDPropertyAccessContext): BACNetAppData<Tag, Type> {
+  getData(ctx?: BDPropertyAccessContext) {
     this.#data.value = this.#poll(ctx ?? { date: new Date() });
     return this.#data;
+  }
+  
+  getValue(ctx?: BDPropertyAccessContext): Type {
+    return this.getData().value;
   }
 
   /**
    * 
    * @internal
    */  ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData | BACNetAppData[] {
-    return this.___getData(ctx);
+    return this.getData(ctx);
   }
   
   async setData() {

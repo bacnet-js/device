@@ -36,15 +36,7 @@ export class BDPolledArrayProperty<
     this.#poll = poll;
   }
 
-  async getData(ctx?: BDPropertyAccessContext) {
-    return Promise.resolve(this.___getData(ctx));
-  }
-
-  /**
-   * 
-   * @internal
-   */
-  ___getData(ctx?: BDPropertyAccessContext): BACNetAppData<Tag, Type>[] {
+  getData(ctx?: BDPropertyAccessContext) {
     return this.#poll(ctx ?? { date: new Date() });
   }
   

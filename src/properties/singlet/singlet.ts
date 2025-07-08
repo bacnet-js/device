@@ -27,34 +27,22 @@ export class BDSingletProperty<
     this.#writable = writable;
   }
 
-  async getData(ctx?: BDPropertyAccessContext): Promise<BACNetAppData<Tag, Type>> {
-    return this.___queue.run(async () => this.___getData(ctx));
-  }
-  
-  async getValue(ctx?: BDPropertyAccessContext): Promise<Type> { 
-    return this.___queue.run(async () => this.___getData(ctx).value);
-  }
-  
-  ___getData(ctx?: BDPropertyAccessContext) {
+  getData(ctx?: BDPropertyAccessContext): BACNetAppData<Tag, Type> {
     return this.#data;
   }
-
-  /**
-   * 
-   * @internal
-   */
-  async ___setData(data: BACNetAppData<Tag, Type>): Promise<void> {
+  
+  getValue(ctx?: BDPropertyAccessContext): Type { 
+    return this.getData().value;
+  }
+  
+  async setData(data: BACNetAppData<Tag, Type>) {
     await this.___asyncEmitSeries(true, 'beforecov', this, data);
     this.#data = data;
     await this.___asyncEmitSeries(false, 'aftercov', this, data);
   }
   
-  async setData(data: BACNetAppData<Tag, Type>) {
-    return this.___queue.run(() => this.___setData(data));
-  }
-  
   async setValue(value: Type): Promise<void> {
-    return this.___queue.run(() => this.___setData({ ...this.___getData(), value }));
+    await this.setData({ ...this.getData(), value });
   }
 
   /**
@@ -62,7 +50,7 @@ export class BDSingletProperty<
    * @internal
    */
   ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData | BACNetAppData[] {
-    return this.___getData(ctx);
+    return this.getData(ctx);
   }
 
   /**
@@ -80,7 +68,7 @@ export class BDSingletProperty<
         data = data[0];
       }
     }
-    await this.___setData(data);
+    await this.setData(data);
   }
   
 }

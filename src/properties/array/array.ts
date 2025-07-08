@@ -28,27 +28,11 @@ export class BDArrayProperty<
     this.#writable = writable;
   }
 
-  async getData(ctx?: BDPropertyAccessContext) {
-    return this.___queue.run(async () => this.___getData(ctx)); 
-  }
-  
-  async setData(data: BACNetAppData<Tag, Type>[]) {
-    await this.___queue.run(() => this.___setData(data));
-  }
-  
-  /**
-   * 
-   * @internal
-   */
-  ___getData(ctx?: BDPropertyAccessContext): BACNetAppData<Tag, Type>[] {
+  getData(ctx?: BDPropertyAccessContext) {
     return this.#data;
   }
 
-  /**
-   * 
-   * @internal
-   */
-  async ___setData(data: BACNetAppData<Tag, Type>[]) { 
+  async setData(data: BACNetAppData<Tag, Type>[]) { 
     await this.___asyncEmitSeries(true, 'beforecov', this, data);
     this.#data = data;
     await this.___asyncEmitSeries(false, 'aftercov', this, data);
@@ -65,7 +49,7 @@ export class BDArrayProperty<
     if (!Array.isArray(data)) { 
       data = [data];
     }
-    await this.___setData(data);
+    await this.setData(data);
   }
   
 }

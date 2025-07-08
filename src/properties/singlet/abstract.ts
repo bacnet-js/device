@@ -23,7 +23,7 @@ export abstract class BDAbstractSingletProperty<
    * Commodity method to get the value of the property rather than the entire
    * data element.
    */
-  abstract getValue(ctx?: BDPropertyAccessContext): Promise<Type>;
+  abstract getValue(ctx?: BDPropertyAccessContext): Type;
   
   /**
    * Commodity method to set the value of the property rather than the entire

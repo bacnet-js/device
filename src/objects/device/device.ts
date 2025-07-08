@@ -346,7 +346,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   
   async #wrapReqHandler<T extends BaseEventContent, O>(req: T, handler: () => Promise<any>) {
     const { header, service, invokeId } = req;
-    await handler().catch((err) => {
+    await this.transaction(handler).catch((err) => {
       if (err instanceof BDError) {
         if (header?.expectingReply) {
           debug('error while handling request: %s', err.stack ?? err.message);
@@ -386,7 +386,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
         && cov.property === subscription.property
         && subscription.object instanceof BDNumericObject 
         && subscription.lastDataSent
-        && Math.abs((cov.value as BACNetAppData<any, number>).value - (subscription.lastDataSent as BACNetAppData<any, number>).value) < subscription.object.covIncrement.___getData().value)
+        && Math.abs((cov.value as BACNetAppData<any, number>).value - (subscription.lastDataSent as BACNetAppData<any, number>).value) < subscription.object.covIncrement.getData().value
       ) { 
         continue;
       }

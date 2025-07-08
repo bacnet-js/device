@@ -34,14 +34,8 @@ export abstract class BDAbstractArrayProperty<
    * 
    * @internal
    */
-  abstract ___getData(ctx: BDPropertyAccessContext): BACNetAppData<Tag, Type>[];
-  
-  /**
-   * 
-   * @internal
-   */
   ___readData(index: number, ctx: BDPropertyAccessContext): BACNetAppData<ApplicationTag.UNSIGNED_INTEGER> | BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[] {
-    const data = this.___getData(ctx);
+    const data = this.getData(ctx);
     if (index === 0) {
       return { type: ApplicationTag.UNSIGNED_INTEGER, value: data.length };
     }
