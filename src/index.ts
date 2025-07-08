@@ -11,7 +11,10 @@
 
 export { BDError } from './errors.js';
 
-export { TaskQueue } from './taskqueue.js';
+export { 
+  type Task, 
+  TaskQueue,
+} from './taskqueue.js';
 
 export {
   type BDObjectUID,
