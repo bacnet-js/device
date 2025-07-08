@@ -386,7 +386,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
         && cov.property === subscription.property
         && subscription.object instanceof BDNumericObject 
         && subscription.lastDataSent
-        && Math.abs((cov.value as BACNetAppData<any, number>).value - (subscription.lastDataSent as BACNetAppData<any, number>).value) < (await subscription.object.covIncrement.getValue())
+        && Math.abs((cov.value as BACNetAppData<any, number>).value - (subscription.lastDataSent as BACNetAppData<any, number>).value) < subscription.object.covIncrement.___getData().value)
       ) { 
         continue;
       }
