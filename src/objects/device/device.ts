@@ -227,8 +227,17 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     
     const supportedObjectTypesBitString = new ObjectTypesSupportedBitString(
       ObjectTypesSupported.DEVICE,
+      ObjectTypesSupported.BINARY_VALUE,
+      ObjectTypesSupported.ANALOG_VALUE,
       ObjectTypesSupported.ANALOG_INPUT,
       ObjectTypesSupported.ANALOG_OUTPUT,
+      ObjectTypesSupported.DATE_VALUE,
+      ObjectTypesSupported.TIME_VALUE,
+      ObjectTypesSupported.DATETIME_VALUE,
+      ObjectTypesSupported.INTEGER_VALUE,
+      ObjectTypesSupported.POSITIVE_INTEGER_VALUE,
+      ObjectTypesSupported.MULTI_STATE_VALUE,
+      ObjectTypesSupported.CHARACTERSTRING_VALUE,
     );
     
     this.protocolObjectTypesSupported = this.addProperty(new BDSingletProperty(
@@ -350,12 +359,12 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       if (err instanceof BDError) {
         if (header?.expectingReply) {
           debug('error while handling request: %s', err.stack ?? err.message);
-          this.#client.errorResponse({ address: header.sender.address }, service!, invokeId!, err.class, err.code);
+          this.#client.errorResponse(header.sender, service!, invokeId!, err.class, err.code);
         }
       } else {
         if (header?.expectingReply) {
           debug('unexpected error while handling request: %s', err.stack ?? err.message);
-          this.#client.errorResponse({ address: header.sender.address }, service!, invokeId!, ErrorClass.DEVICE, ErrorCode.INTERNAL_ERROR);
+          this.#client.errorResponse(header.sender, service!, invokeId!, ErrorClass.DEVICE, ErrorCode.INTERNAL_ERROR);
         }
       }
     });
@@ -443,7 +452,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       const { payload: { objectId, property }, address, header, service, invokeId } = req;
       debug('req #%s: readProperty, object %s %s, property %s', invokeId, ObjectType[objectId.type], objectId.instance, PropertyIdentifier[property.id]);
       const data = await this.#getObjectByIdOrThrow(objectId).___readProperty(property);
-      this.#client.readPropertyResponse({ address: header!.sender.address }, invokeId!, objectId, property, data);
+      this.#client.readPropertyResponse(header!.sender, invokeId!, objectId, property, data);
     });
   }
   
@@ -478,7 +487,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
         object,
       };
       this.#subscriptions.add(sub);
-      this.#client.simpleAckResponse({ address: header!.sender.address }, service!, invokeId!);
+      this.#client.simpleAckResponse(header!.sender, service!, invokeId!);
     });
   };
   
@@ -518,7 +527,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       debug('new request: whoIs');
       const { header } = req;
       if (!header) return;
-      this.#client.iAmResponse({ address: header.sender.address }, this.identifier.instance, Segmentation.NO_SEGMENTATION, this.#vendorId);
+      this.#client.iAmResponse(header.sender, this.identifier.instance, Segmentation.NO_SEGMENTATION, this.#vendorId);
     });
   }
   
@@ -615,7 +624,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
           values.push(await object.___readPropertyMultiple(objProperties));
         }
       }
-      this.#client.readPropertyMultipleResponse({ address: header.sender.address }, invokeId!, values);
+      this.#client.readPropertyMultipleResponse(header.sender, invokeId!, values);
     });
   };
   
@@ -637,7 +646,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
         throw new BDError('inconsistent parameters', ErrorCode.INCONSISTENT_PARAMETERS, ErrorClass.SERVICES);
       }
       await this.#getObjectByIdOrThrow(objectId).___writeProperty(_property, _value);
-      this.#client.simpleAckResponse({ address: header!.sender.address }, service!, invokeId!);
+      this.#client.simpleAckResponse(header!.sender, service!, invokeId!);
     });
   };
   
@@ -682,7 +691,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       return;
     }
     if (header.expectingReply) {
-      this.#client.errorResponse({ address: header.sender.address }, service, invokeId, ErrorClass.SERVICES, ErrorCode.SERVICE_REQUEST_DENIED);
+      this.#client.errorResponse(header.sender, service, invokeId, ErrorClass.SERVICES, ErrorCode.SERVICE_REQUEST_DENIED);
     }
   };
   
