@@ -26,17 +26,14 @@ import {
  * @returns A promise that resolves when the notification is confirmed or rejects on error
  */
 export const sendConfirmedCovNotification = async (client: BACNetClientType, emitter: BDDevice, subscription: BDSubscription<any, any, any>, cov: BDQueuedCov<any, any, any>) => {
-  return new Promise<void>((resolve, reject) => {
-    client.confirmedCOVNotification(
-      { address: subscription.subscriber.address },
-      cov.object.identifier,
-      subscription.subscriptionProcessId,
-      emitter.identifier.instance,
-      Math.floor(Math.max(0, subscription.expiresAt - Date.now()) / 1000),
-      [{ property: { id: cov.property.identifier }, value: ensureArray(cov.value) }],
-      (err) => err ? reject(err) : resolve(),
-    );
-  });
+  await client.confirmedCOVNotification(
+    { address: subscription.subscriber.address },
+    cov.object.identifier,
+    subscription.subscriptionProcessId,
+    emitter.identifier.instance,
+    Math.floor(Math.max(0, subscription.expiresAt - Date.now()) / 1000),
+    [{ property: { id: cov.property.identifier }, value: ensureArray(cov.value) }],
+  );
 };
 
 /**
