@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.2.0 - 2025-07-12
+#### Features
+- **(properties)** separates implementation of polled properties vs. normal properties (#12) - (ba847d6) - Jacopo Scazzosi
+#### Miscellaneous Chores
+- **(ci)** adds github workflow for validating commit messages and PR titles using cocogitto (#11) - (3533ca2) - Jacopo Scazzosi
+- updates to @bacnet-js/client@3.0.0, improves addressing of response recipients, minor tweaks (#13) - (b0a785e) - Jacopo Scazzosi
+
+- - -
+
 ## v0.1.0 - 2025-07-02
 #### Features
 - switch to cocogitto for commit, changelog and release management - (92fce0b) - Jacopo Scazzosi
