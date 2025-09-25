@@ -1,22 +1,22 @@
 
-import { 
+import {
   BDError,
 } from '../../errors.js';
 
-import { 
+import {
   BDObject,
 } from '../generic/object.js';
 
-import { 
+import {
   type BACNetClientType,
   isDstInEffect,
 } from '../../utils.js';
 
-import { 
+import {
   BDAbstractProperty,
-  BDArrayProperty, 
-  BDPolledArrayProperty, 
-  BDPolledSingletProperty, 
+  BDArrayProperty,
+  BDPolledArrayProperty,
+  BDPolledSingletProperty,
   BDSingletProperty,
 } from '../../properties/index.js';
 
@@ -41,7 +41,7 @@ import bacnet, {
   ObjectTypesSupportedBitString,
 } from '@bacnet-js/client';
 
-import { 
+import {
   type BaseEventContent,
   type ReadPropertyContent,
   type ReadPropertyMultipleContent,
@@ -49,13 +49,17 @@ import {
   type SubscribeCovContent,
 } from '@bacnet-js/client/dist/lib/EventTypes.js';
 
-import { 
+import {
   type BDDeviceOpts,
   type BDDeviceEvents,
   type BDQueuedCov,
 } from './types.js';
 
-import { 
+import {
+  BDStructuredView,
+} from '../structuredview.js';
+
+import {
   sendConfirmedCovNotification,
   sendUnconfirmedCovNotification,
 } from './utils.js'
@@ -73,14 +77,14 @@ const { default: BACnetClient } = bacnet;
 
 /**
  * Implements a BACnet Device object
- * 
+ *
  * The Device object is a specialized BACnet object that represents the BACnet device itself.
  * It serves as a container for all other BACnet objects and provides device-level properties
  * and services. Each BACnet node hosts exactly one Device object.
- * 
+ *
  * According to the BACnet specification, the Device object includes standard properties:
  * - Object_Identifier (automatically added by BACnetObject)
- * - Object_Name (automatically added by BACnetObject) 
+ * - Object_Name (automatically added by BACnetObject)
  * - Object_Type (automatically added by BACnetObject)
  * - System_Status
  * - Vendor_Name
@@ -94,35 +98,37 @@ const { default: BACnetClient } = bacnet;
  * - Protocol_Object_Types_Supported
  * - Object_List
  * - And other properties related to device capabilities and configuration
- * 
+ *
  * @extends BDObject
  */
 export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEvents> {
-  
+
   /**
    * @see https://bacnet.org/assigned-vendor-ids/
    */
   readonly #vendorId: number;
-  
+
   /** The underlying BACnet client from the bacnet library */
   readonly #client: BACNetClientType;
-  
+
   /** Queue for processing COV notifications */
   readonly #covqueue: fastq.queueAsPromised<BDQueuedCov<any, any, any>>;
-  
+
   /** Map of active subscriptions organized by object type and instance */
   readonly #subscriptions: SubscriptionStore;
-  
-  /** 
+
+  /**
    * Map of all objects in this device, organized by type and instance
    * @private
    */
   readonly #objects: Map<BDObjectUID, BDObject>;
-  
   readonly #objectData: BACNetAppData<ApplicationTag.OBJECTIDENTIFIER>[];
-  
+
+  readonly #subordinates: Set<BDStructuredView>;
+  readonly #subortinateData: BACNetAppData<ApplicationTag.OBJECTIDENTIFIER>[];
+
   readonly #knownDevices: Map<number, IAMResult>;
-  
+
   readonly objectList: BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
   readonly structuredObjectList: BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
   readonly protocolVersion: BDSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
@@ -150,31 +156,35 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   readonly localTime: BDPolledSingletProperty<ApplicationTag.TIME>;
   readonly daylightSavingsStatus: BDPolledSingletProperty<ApplicationTag.BOOLEAN>;
   readonly systemStatus: BDSingletProperty<ApplicationTag.ENUMERATED, DeviceStatus>;
-  
+
 
   /**
    * Creates a new BACnet Device object
-   * 
+   *
    * This constructor initializes a Device object with all required properties
    * according to the BACnet specification, including support for basic BACnet
    * services and object types.
-   * 
+   *
    * @param instance - Device instance number (0-4194303). Must be unique on the BACnet network.
    * @param opts - Configuration options for this device
-   * 
+   *
    * @see {@link https://kargs.net/BACnet/Foundations2012-BACnetDeviceID.pdf}
    */
   constructor(instance: number, opts: BDDeviceOpts) {
     super({ type: ObjectType.DEVICE, instance }, opts.name, opts.description);
-  
+
     this.#vendorId = opts.vendorId ?? 0;
+    this.#knownDevices = new Map();
+
     this.#objects = new Map();
     this.#objectData = [];
-    this.#knownDevices = new Map();
-    
+
+    this.#subordinates = new Set();
+    this.#subortinateData = [];
+
     this.#covqueue = fastq.promise(null, this.#covQueueWorker, 1);
     this.#subscriptions = new SubscriptionStore();
-    
+
     this.#client = new BACnetClient(opts)
       .on('whoHas', this.#onBacnetWhoHas)
       .on('iAm', this.#onBacnetIAm)
@@ -193,25 +203,25 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       .on('removeListElement', this.#onBacnetRemoveListElement)
       .on('getEventInformation', this.#onBacnetGetEventInformation)
       .on('unhandledEvent', this.#onBacnetUnhandledEvent);
-    
+
     this.addObject(this);
-    
+
     // ================== PROPERTIES RELATED TO CHILD OBJECTS =================
-    
+
     this.objectList = this.addProperty(new BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>(
       PropertyIdentifier.OBJECT_LIST, () => this.#objectData));
-    
+
     this.structuredObjectList = this.addProperty(new BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>(
-      PropertyIdentifier.STRUCTURED_OBJECT_LIST, () => this.#objectData));
-    
+      PropertyIdentifier.STRUCTURED_OBJECT_LIST, () => this.#subortinateData));
+
     // ====================== PROTOCOL-RELATED PROPERTIES =====================
-    
+
     this.protocolVersion = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.PROTOCOL_VERSION, ApplicationTag.UNSIGNED_INTEGER, false, 1));
-    
+
     this.protocolRevision = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.PROTOCOL_REVISION, ApplicationTag.UNSIGNED_INTEGER, false, 24));
-    
+
     const supportedServicesBitString = new ServicesSupportedBitString(
       ServicesSupported.WHO_IS,
       ServicesSupported.I_AM,
@@ -221,10 +231,10 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       ServicesSupported.CONFIRMED_COV_NOTIFICATION,
       ServicesSupported.UNCONFIRMED_COV_NOTIFICATION,
     );
-    
+
     this.protocolServicesSupported = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.PROTOCOL_SERVICES_SUPPORTED, ApplicationTag.BIT_STRING, false, supportedServicesBitString));
-    
+
     const supportedObjectTypesBitString = new ObjectTypesSupportedBitString(
       ObjectTypesSupported.DEVICE,
       ObjectTypesSupported.BINARY_VALUE,
@@ -239,120 +249,137 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       ObjectTypesSupported.MULTI_STATE_VALUE,
       ObjectTypesSupported.CHARACTERSTRING_VALUE,
     );
-    
+
     this.protocolObjectTypesSupported = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.PROTOCOL_OBJECT_TYPES_SUPPORTED, ApplicationTag.BIT_STRING, false, supportedObjectTypesBitString));
-    
+
     // ==================== SUBSCRIPTION-RELATED PROPERTIES ===================
-    
+
     this.activeCovSubscriptions = this.addProperty(new BDPolledArrayProperty<ApplicationTag.COV_SUBSCRIPTION>(
       PropertyIdentifier.ACTIVE_COV_SUBSCRIPTIONS, () => this.#subscriptions.getDeviceSubscriptionData()));
-    
+
     // ========================== METADATA PROPERTIES =========================
-    
+
     this.vendorIdentifier = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.VENDOR_IDENTIFIER, ApplicationTag.UNSIGNED_INTEGER, false, this.#vendorId));
-    
+
     this.vendorName = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.VENDOR_NAME, ApplicationTag.CHARACTER_STRING, false, opts.vendorName ?? 'w'));
-    
+
     this.modelName = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.MODEL_NAME, ApplicationTag.CHARACTER_STRING, false, opts.modelName));
-    
+
     this.firmwareRevision = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.FIRMWARE_REVISION, ApplicationTag.CHARACTER_STRING, false, opts.firmwareRevision));
-    
+
     this.applicationSoftwareVersion = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.APPLICATION_SOFTWARE_VERSION, ApplicationTag.CHARACTER_STRING, false, opts.applicationSoftwareVersion));
-    
+
     this.databaseRevision = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.DATABASE_REVISION, ApplicationTag.UNSIGNED_INTEGER, false, opts.databaseRevision));
-     
-    // Bindings can be discovered via the "Who-Is" and "I-Am" services. 
+
+    // Bindings can be discovered via the "Who-Is" and "I-Am" services.
     // This property represents a list of static bindings and we can leave it empty.
     this.deviceAddressBinding = this.addProperty(new BDArrayProperty<ApplicationTag.NULL>(
       PropertyIdentifier.DEVICE_ADDRESS_BINDING, false, []));
-    
+
     // In your device constructor
     this.location = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.LOCATION, ApplicationTag.CHARACTER_STRING, false, opts.location ?? 'w'));
-    
+
     this.serialNumber = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.SERIAL_NUMBER, ApplicationTag.CHARACTER_STRING, false, opts.serialNumber ?? 'w'));
-    
+
     // ======================== APDU-RELATED PROPERTIES =======================
-    
+
     this.maxApduLengthAccepted = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.MAX_APDU_LENGTH_ACCEPTED, ApplicationTag.UNSIGNED_INTEGER, false, opts.apduMaxLength ?? 1476));
-    
+
     this.apduTimeout = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.APDU_TIMEOUT, ApplicationTag.UNSIGNED_INTEGER, false, opts.apduTimeout ?? 6000));
-    
+
     this.numberOfApduRetries = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.NUMBER_OF_APDU_RETRIES, ApplicationTag.UNSIGNED_INTEGER, false, opts.apduRetries ?? 3));
-    
+
     this.apduSegmentTimeout = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.APDU_SEGMENT_TIMEOUT, ApplicationTag.UNSIGNED_INTEGER, false, opts.apduSegmentTimeout ?? 2000));
-  
+
     // ======================== SEGMENTATION PROPERTIES =======================
 
     this.segmentationSupported = this.addProperty(new BDSingletProperty<ApplicationTag.ENUMERATED, Segmentation>(
       PropertyIdentifier.SEGMENTATION_SUPPORTED, ApplicationTag.ENUMERATED, false, Segmentation.SEGMENTED_BOTH));
-    
+
     // Accepter values: 2, 4, 8, 16, 32, 64 and 0 for "unspecified"
     this.maxSegmentsAccepted = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.MAX_SEGMENTS_ACCEPTED, ApplicationTag.UNSIGNED_INTEGER, false, 16));
-    
+
     // ======================== TIME-RELATED PROPERTIES =======================
-    
+
     this.utcOffset = this.addProperty(new BDPolledSingletProperty(
       PropertyIdentifier.UTC_OFFSET, ApplicationTag.SIGNED_INTEGER, (ctx) => ctx.date.getTimezoneOffset() * -1));
-    
+
     this.localDate = this.addProperty(new BDPolledSingletProperty(
       PropertyIdentifier.LOCAL_DATE, ApplicationTag.DATE, (ctx) => ctx.date));
-    
+
     this.localTime = this.addProperty(new BDPolledSingletProperty(
       PropertyIdentifier.LOCAL_TIME, ApplicationTag.TIME, (ctx) => ctx.date));
-    
+
     this.daylightSavingsStatus = this.addProperty(new BDPolledSingletProperty(
       PropertyIdentifier.DAYLIGHT_SAVINGS_STATUS, ApplicationTag.BOOLEAN, (ctx) => isDstInEffect(ctx.date)));
-    
+
     // ======================= STATUS-RELATED PROPERTIES ======================
-    
+
     this.systemStatus = this.addProperty(new BDSingletProperty<ApplicationTag.ENUMERATED, DeviceStatus>(
       PropertyIdentifier.SYSTEM_STATUS, ApplicationTag.ENUMERATED, false, DeviceStatus.OPERATIONAL));
-    
+
   }
-  
+
   // ==========================================================================
   //                               PUBLIC METHODS
   // ==========================================================================
-  
+
   /**
    * Adds a BACnet object to this device
-   * 
+   *
    * This method registers a new BACnet object with the device and adds it to the
    * device's object list. The object must have a unique identifier (type and instance).
-   * 
+   *
    * @param object - The BACnet object to add to this device
    * @returns The added object
    * @throws Error if an object with the same identifier already exists
    * @typeParam T - The specific BACnet object type
    */
-  addObject<T extends BDObject>(object: T): T { 
-    if (this.#objects.has(object.uid)) { 
-      throw new Error('Cannot register object: duplicate object identifier');
+  addObject<T extends BDObject>(object: T): T {
+    if (!this.#objects.has(object.uid)) {
+      this.#objects.set(object.uid, object);
+      this.#objectData.push({ type: ApplicationTag.OBJECTIDENTIFIER, value: object.identifier });
+      object.on('aftercov', this.#onChildAfterCov);
+      if (object instanceof BDStructuredView) {
+        object.___setDevice(this);
+      }
     }
-    this.#objects.set(object.uid, object);
-    this.#objectData.push({ type: ApplicationTag.OBJECTIDENTIFIER, value: object.identifier });
-    object.on('aftercov', this.#onChildAfterCov);
     return object;
   }
-  
+
+  /**
+   * Adds a subordinate object to this device. The subordinate object must be a
+   * structured view object.
+   *
+   * @param child - The BACnet object to add as a new child of this Structured View object
+   */
+  addSubordinate(subordinate: BDStructuredView): BDStructuredView {
+    subordinate = this.addObject(subordinate);
+    if (!this.#subordinates.has(subordinate)) {
+      this.#subordinates.add(subordinate);
+      this.#subortinateData.push({ type: ApplicationTag.OBJECTIDENTIFIER, value: subordinate.identifier })
+    }
+    return subordinate;
+  }
+
   // ==========================================================================
   //                        INTERNAL HELPER METHODS
   // ==========================================================================
-  
+
   async #wrapReqHandler<T extends BaseEventContent, O>(req: T, handler: () => Promise<any>) {
     const { header, service, invokeId } = req;
     await this.transaction(handler).catch((err) => {
@@ -369,34 +396,34 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       }
     });
   }
-  
+
   #getObjectByIdOrThrow(objectId: BACNetObjectID): BDObject {
     const object = this.#objects.get(getObjectUID(objectId));
-    if (object) { 
+    if (object) {
       return object;
     }
     throw new BDError('unknown object', ErrorCode.UNKNOWN_OBJECT, ErrorClass.OBJECT);
   }
 
-  
+
   /**
    * Worker function for processing the COV notification queue
-   * 
+   *
    * This method processes each COV notification and sends it to all
    * applicable subscribers.
-   * 
+   *
    * @param cov - The change of value data to process
    * @private
    */
   #covQueueWorker = async (cov: BDQueuedCov<any, any, any>) => {
     const propertyUid = getPropertyUID(cov.object.uid, cov.property.identifier);
     for (const subscription of this.#subscriptions.getPropertySubscriptions(propertyUid)) {
-      if (cov.property.identifier === PropertyIdentifier.PRESENT_VALUE 
+      if (cov.property.identifier === PropertyIdentifier.PRESENT_VALUE
         && cov.property === subscription.property
-        && subscription.object instanceof BDNumericObject 
+        && subscription.object instanceof BDNumericObject
         && subscription.lastDataSent
         && Math.abs((cov.value as BACNetAppData<any, number>).value - (subscription.lastDataSent as BACNetAppData<any, number>).value) < subscription.object.covIncrement.getData().value
-      ) { 
+      ) {
         continue;
       }
       subscription.lastDataSent = cov.value;
@@ -407,25 +434,25 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
         subscription.covIncrement += 1;
         await sendUnconfirmedCovNotification(this.#client, this, subscription, cov);
       }
-    } 
+    }
   };
-  
+
   // ==========================================================================
   //                     LISTENERS FOR CHILD OBJECT EVENTS
   // ==========================================================================
-  
+
   /**
    * Handles 'aftercov' events from child BACnet objects
-   * 
+   *
    * This method propagates Change of Value (COV) events from contained objects
    * to the device's subscribers, allowing for device-wide COV monitoring.
-   * 
+   *
    * @param object - The object that changed
    * @param property - The property that changed
    * @param value - The new value
    * @private
    */
-  #onChildAfterCov = async (object: BDObject, property: BDAbstractProperty<any, any, any>, value: BACNetAppData | BACNetAppData[]) => { 
+  #onChildAfterCov = async (object: BDObject, property: BDAbstractProperty<any, any, any>, value: BACNetAppData | BACNetAppData[]) => {
     // We do not `await` the promise as we do not want slow consumers of
     // confirmed CoV notifications in the BACnet network to indirectly block
     // further operations on this object.
@@ -436,14 +463,14 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   // ==========================================================================
   //                   LISTENERS FOR BACNET SERVICE EVENTS
   // ==========================================================================
-  
-  
+
+
   /**
    * Handles ReadProperty requests from other BACnet devices
-   * 
+   *
    * This method processes ReadProperty requests and returns the requested
    * property value or an appropriate error.
-   * 
+   *
    * @param req - The ReadProperty request content
    * @private
    */
@@ -455,22 +482,22 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       this.#client.readPropertyResponse(header!.sender, invokeId!, objectId, property, data);
     });
   }
-  
+
   /**
    * Handles SubscribeCOV requests from other BACnet devices
-   * 
+   *
    * This method processes subscription requests for COV notifications
    * and either creates a new subscription or updates an existing one.
-   * 
+   *
    * @param req - The SubscribeCOV request content
    * @private
    */
   #onBacnetSubscribeCov = (req: SubscribeCovContent) => {
-    this.#wrapReqHandler(req, async () => { 
-      const { payload: { subscriberProcessId, monitoredObjectId, issueConfirmedNotifications, lifetime }, header, service, invokeId } = req;  
+    this.#wrapReqHandler(req, async () => {
+      const { payload: { subscriberProcessId, monitoredObjectId, issueConfirmedNotifications, lifetime }, header, service, invokeId } = req;
       const object = this.#getObjectByIdOrThrow(monitoredObjectId);
       const property = object.___getPropertyOrThrow(PropertyIdentifier.PRESENT_VALUE);
-      debug('new subscription: object %s %s', ObjectType[monitoredObjectId.type], monitoredObjectId.instance);  
+      debug('new subscription: object %s %s', ObjectType[monitoredObjectId.type], monitoredObjectId.instance);
       const sub = {
         subscriptionProcessId: subscriberProcessId,
         issueConfirmedNotifications,
@@ -490,39 +517,39 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       this.#client.simpleAckResponse(header!.sender, service!, invokeId!);
     });
   };
-  
+
   /**
    * Handles SubscribeCOVProperty requests from other BACnet devices
-   * 
+   *
    * This method is not fully implemented yet as it requires additional
    * support from the underlying BACnet library.
-   * 
+   *
    * Implementing onSubscribeCovProperty requires the underlying
    * @bacnet-js/client library to add support for the
    * full payload of this kind of event, which includes - in addition
-   * to the properties of the standard onSubscribeCov event - the 
+   * to the properties of the standard onSubscribeCov event - the
    * following:
    * - monitored property: reference to the specific property being monitored
    * - covIncrement: (optional) minimum value change required to send cov
-   * 
+   *
    * @param req - The SubscribeCOVProperty request content
    * @private
    */
-  #onBacnetSubscribeProperty = (req: Omit<BaseEventContent, 'payload'> & { payload: SubscribeCovPayload }) => { 
+  #onBacnetSubscribeProperty = (req: Omit<BaseEventContent, 'payload'> & { payload: SubscribeCovPayload }) => {
     debug('new request: subscribeProperty');
     this.#onBacnetUnsupportedService(req);
     // const { payload: { subscriberProcessId, monitoredObjectId, issueConfirmedNotifications, lifetime }, header, service, invokeId } = req;
   };
-  
+
   /**
    * Handles WhoIs requests from other BACnet devices
-   * 
+   *
    * This method responds with an IAm message identifying this device.
-   * 
+   *
    * @param req - The WhoIs request content
    * @private
    */
-  #onBacnetWhoIs = (req: BaseEventContent) => { 
+  #onBacnetWhoIs = (req: BaseEventContent) => {
     this.#wrapReqHandler(req, async () => {
       debug('new request: whoIs');
       const { header } = req;
@@ -530,12 +557,12 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       this.#client.iAmResponse(header.sender, this.identifier.instance, Segmentation.NO_SEGMENTATION, this.#vendorId);
     });
   }
-  
+
   /**
    * Handles WhoHas requests from other BACnet devices
-   * 
+   *
    * Currently not fully implemented, returns an error response.
-   * 
+   *
    * @param req - The WhoHas request content
    * @private
    */
@@ -543,12 +570,12 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     debug('new request: whoHas');
     this.#onBacnetUnsupportedService(req);
   };
-  
+
   /**
    * Handles IAm notifications from other BACnet devices
-   * 
+   *
    * Currently not fully implemented, returns an error response.
-   * 
+   *
    * @param req - The IAm notification content
    * @private
    */
@@ -561,12 +588,12 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       this.#knownDevices.set(deviceId, payload);
     });
   };
-  
+
   /**
    * Handles IHave notifications from other BACnet devices
-   * 
+   *
    * Currently not fully implemented, returns an error response.
-   * 
+   *
    * @param req - The IHave notification content
    * @private
    */
@@ -576,12 +603,12 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     // const { header, service, invokeId } = req;
     // TODO: implement
   };
-  
+
   /**
    * Handles ReadRange requests from other BACnet devices
-   * 
+   *
    * Currently not fully implemented, returns an error response.
-   * 
+   *
    * @param req - The ReadRange request content
    * @private
    */
@@ -589,12 +616,12 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     debug('new request: readRange');
     this.#onBacnetUnsupportedService(req);
   };
-  
+
   /**
    * Handles DeviceCommunicationControl requests from other BACnet devices
-   * 
+   *
    * Currently not fully implemented, returns an error response.
-   * 
+   *
    * @param req - The DeviceCommunicationControl request content
    * @private
    */
@@ -602,17 +629,17 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     debug('new request: deviceCommunicationControl');
     this.#onBacnetUnsupportedService(req);
   };
-  
+
   /**
    * Handles ReadPropertyMultiple requests from other BACnet devices
-   * 
+   *
    * This method processes requests to read multiple properties and
    * returns all the requested property values in a single response.
-   * 
+   *
    * @param req - The ReadPropertyMultiple request content
    * @private
    */
-  #onBacnetReadPropertyMultiple = (req: ReadPropertyMultipleContent) => { 
+  #onBacnetReadPropertyMultiple = (req: ReadPropertyMultipleContent) => {
     debug('new request: readPropertyMultiple');
     this.#wrapReqHandler(req, async () => {
       const { header, invokeId, payload: { properties } } = req;
@@ -627,16 +654,16 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       this.#client.readPropertyMultipleResponse(header.sender, invokeId!, values);
     });
   };
-  
+
   /**
    * Handles WriteProperty requests from other BACnet devices
-   * 
+   *
    * This method processes requests to write values to properties.
-   * 
+   *
    * @param req - The WriteProperty request content
    * @private
    */
-  #onBacnetWriteProperty = (req: WritePropertyContent) => { 
+  #onBacnetWriteProperty = (req: WritePropertyContent) => {
     debug('req #%s: writeProperty');
     this.#wrapReqHandler(req, async () => {
       const { header, service, invokeId, payload: { objectId, property, value } } = req;
@@ -649,57 +676,57 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       this.#client.simpleAckResponse(header!.sender, service!, invokeId!);
     });
   };
-  
+
   /**
    * Handles AddListElement requests from other BACnet devices
-   * 
+   *
    * This method processes requests to add elements to list properties.
    * Not fully implemented yet.
-   * 
+   *
    * @param req - The AddListElement request content
    * @private
    */
-  #onBacnetAddListElement = (req: Omit<BaseEventContent, 'payload'> & { payload: ListElementOperationPayload }) => { 
+  #onBacnetAddListElement = (req: Omit<BaseEventContent, 'payload'> & { payload: ListElementOperationPayload }) => {
     this.#onBacnetUnsupportedService(req);
   };
-  
+
   /**
    * Handles RemoveListElement requests from other BACnet devices
-   * 
+   *
    * This method processes requests to remove elements from list properties.
    * Not fully implemented yet.
-   * 
+   *
    * @param req - The RemoveListElement request content
    * @private
    */
   #onBacnetRemoveListElement = (req: Omit<BaseEventContent, 'payload'> & { payload: ListElementOperationPayload }) => {
     this.#onBacnetUnsupportedService(req);
   };
-  
-  #onBacnetGetEventInformation = (req:  Omit<BaseEventContent, 'payload'> & { payload: BACNetEventInformation[];}) => { 
+
+  #onBacnetGetEventInformation = (req:  Omit<BaseEventContent, 'payload'> & { payload: BACNetEventInformation[];}) => {
     this.#onBacnetUnsupportedService(req);
   };
-  
+
   #onBacnetUnhandledEvent = (req: Omit<BaseEventContent, 'payload'>) => {
     this.#onBacnetUnsupportedService(req);
   };
-  
-  #onBacnetUnsupportedService = (req: Omit<BaseEventContent, 'payload'>) => { 
+
+  #onBacnetUnsupportedService = (req: Omit<BaseEventContent, 'payload'>) => {
     const { header, invokeId, service } = req;
     debug('req #%s: %s (not supported)', invokeId, service ? ServicesSupported[service] : 'unknown');
-    if (!header || !invokeId || typeof service !== 'number') { 
+    if (!header || !invokeId || typeof service !== 'number') {
       return;
     }
     if (header.expectingReply) {
       this.#client.errorResponse(header.sender, service, invokeId, ErrorClass.SERVICES, ErrorCode.SERVICE_REQUEST_DENIED);
     }
   };
-  
+
   /**
    * Handles errors from the BACnet client
-   * 
+   *
    * This method emits errors to allow the application to handle them.
-   * 
+   *
    * @param err - The error that occurred
    * @private
    */
@@ -707,19 +734,19 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     debug('server error', err);
     this.___emit('error', err);
   };
-  
+
   /**
    * Handles the listening event from the BACnet client
-   * 
+   *
    * This method emits a listening event when the BACnet node
    * starts listening on the network.
-   * 
+   *
    * @private
    */
-  #onBacnetListening = () => { 
+  #onBacnetListening = () => {
     debug('server is listening');
     this.___emit('listening');
   };
-  
-    
+
+
 }
