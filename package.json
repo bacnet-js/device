@@ -38,6 +38,7 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
+    "!dist/examples/**/*",
     "CONFORMANCE.md"
   ],
   "keywords": [
