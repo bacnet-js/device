@@ -105,7 +105,7 @@ Conformance levels for object types are defined as follows:
 | ❌ | GLOBAL_GROUP | |
 | ❌ | TREND_LOG_MULTIPLE | |
 | ❌ | LOAD_CONTROL | |
-| ❌ | STRUCTURED_VIEW | |
+| ✅ | STRUCTURED_VIEW | |
 | ❌ | ACCESS_DOOR | |
 | ❌ | TIMER | |
 | ❌ | ACCESS_CREDENTIAL | |
@@ -136,7 +136,7 @@ Conformance levels for object types are defined as follows:
 | ❌ | ELEVATOR_GROUP | |
 | ❌ | ESCALATOR | |
 | ❌ | LIFT | |
-      
+
 As an example of what we mean by maintaining consistency across properties,
 consider the constraints described in section `12.8.4` of the specification:
 
