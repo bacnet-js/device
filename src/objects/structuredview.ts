@@ -67,7 +67,7 @@ export class BDStructuredView extends BDObject {
   /**
    * Adds a subordinate object to this structured view.
    *
-   * @param child - The BACnet object to add as a new child of this Structured View object
+   * @param subordinate - The BACnet object to add as a new child of this Structured View object
    */
   addSubordinate<T extends BDObject>(subordinate: T): T {
     if (subordinate as any === this) {

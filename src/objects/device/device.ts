@@ -362,10 +362,11 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   }
 
   /**
-   * Adds a subordinate object to this device. The subordinate object must be a
-   * structured view object.
+   * Adds a subordinate object to the structured representation of this device.
+   * The subordinate object must be a Structured View object.
    *
-   * @param child - The BACnet object to add as a new child of this Structured View object
+   * @param subordinate - The Structured View object to add as a new child of
+   *                      this Device object
    */
   addSubordinate(subordinate: BDStructuredView): BDStructuredView {
     subordinate = this.addObject(subordinate);
