@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.3.0 - 2025-09-26
+#### Features
+- support for Structured View object type (#17) - (abf2658) - Jacopo Scazzosi
+
+- - -
+
 ## v0.2.0 - 2025-07-12
 #### Features
 - **(properties)** separates implementation of polled properties vs. normal properties (#12) - (ba847d6) - Jacopo Scazzosi
