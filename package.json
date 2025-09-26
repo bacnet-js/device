@@ -25,7 +25,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@bacnet-js/client": "^3.0.0",
+    "@bacnet-js/client": "^3.0.1",
     "debug": "^4.4.1",
     "fastq": "^1.19.1"
   },
@@ -38,6 +38,7 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
+    "!dist/examples/**/*",
     "CONFORMANCE.md"
   ],
   "keywords": [

@@ -1,18 +1,18 @@
 
 /**
  * BACnet Device Library
- * 
+ *
  * A TypeScript library for implementing BACnet IP devices in Node.js.
  * This module provides all the necessary types and classes for creating
  * and managing BACnet devices, objects, and properties.
- * 
+ *
  * @packageDocumentation
  */
 
 export { BDError } from './errors.js';
 
-export { 
-  type Task, 
+export {
+  type Task,
   TaskQueue,
 } from './taskqueue.js';
 
@@ -21,12 +21,12 @@ export {
   type BDPropertyUID,
 } from './uids.js';
 
-export { 
+export {
   type EventMap,
   type EventKey,
   type EventArgs,
   type EventListener,
-  AsyncEventEmitter, 
+  AsyncEventEmitter,
 } from './events.js';
 
 export {
@@ -34,21 +34,21 @@ export {
   type BDPropertyAccessContext,
   BDPropertyType,
   BDAbstractProperty,
-  BDArrayProperty, 
+  BDArrayProperty,
   BDPolledArrayProperty,
   BDSingletProperty,
   BDPolledSingletProperty,
 } from './properties/index.js';
 
-export { 
+export {
   type BDObjectEvents,
   BDObject,
 } from './objects/generic/object.js';
 
 export { BDDevice } from './objects/device/device.js';
 
-export { 
-  type BDDeviceOpts, 
+export {
+  type BDDeviceOpts,
   type BDSubscription,
   type BDDeviceEvents,
 } from './objects/device/types.js';
@@ -68,3 +68,4 @@ export * from './objects/temporal/datetimevalue.js';
 export * from './objects/multistatevalue.js';
 
 export * from './objects/characterstringvalue.js';
+export * from './objects/structuredview.js';
