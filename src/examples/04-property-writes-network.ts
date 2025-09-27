@@ -4,8 +4,7 @@
  */
 
 import { EngineeringUnits, type BACNetAppData } from "@bacnet-js/client";
-import { BDDevice } from "../objects/device/device.js";
-import { BDAnalogValue } from "../objects/numeric/analogvalue.js";
+import { BDDevice, BDAnalogValue } from "../index.js";
 
 const device = new BDDevice(1, {
   port: 47808,
