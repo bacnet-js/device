@@ -369,7 +369,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    * Adds a subordinate BACnet object to this device
    *
    * This method registers a new BACnet object with the device and adds it to
-   * the device's object list, just as {@link this.___addObject}. Additionally,
+   * the device's object list, just as {@link BDDevice.addObject}. Additionally,
    * however, this method also registers the object as a subordinate object of
    * this device, adding it to the device's structured representation. The
    * subordinate object *must* be a Structured View object.
