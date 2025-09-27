@@ -19,8 +19,8 @@ export class BDCharacterStringValue extends BDObject {
 
   readonly presentValue: BDSingletProperty<ApplicationTag.CHARACTER_STRING>;
 
-  constructor(instance: number, opts: BDCharacterStringValueOpts) {
-    super({ type: ObjectType.CHARACTERSTRING_VALUE, instance }, opts.name, opts.description);
+  constructor(opts: BDCharacterStringValueOpts) {
+    super(ObjectType.CHARACTERSTRING_VALUE, opts.name, opts.description);
 
     this.presentValue = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.PRESENT_VALUE, ApplicationTag.CHARACTER_STRING, opts.writable ?? false, opts.presentValue ?? '', CharacterStringEncoding.UTF_8));

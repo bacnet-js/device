@@ -71,6 +71,7 @@ import { AsyncEventEmitter } from '../../events.js';
 import { SubscriptionStore } from './subscriptionstore.js';
 import { getObjectUID, getPropertyUID, type BDObjectUID } from '../../uids.js';
 import { BDNumericObject } from '../numeric/numeric.js';
+import { instanceManager } from '../instancemanager.js';
 
 const { default: BACnetClient } = bacnet;
 
@@ -171,7 +172,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    * @see {@link https://kargs.net/BACnet/Foundations2012-BACnetDeviceID.pdf}
    */
   constructor(instance: number, opts: BDDeviceOpts) {
-    super({ type: ObjectType.DEVICE, instance }, opts.name, opts.description);
+    super(ObjectType.DEVICE, opts.name, opts.description);
 
     this.#vendorId = opts.vendorId ?? 0;
     this.#knownDevices = new Map();
@@ -204,7 +205,13 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       .on('getEventInformation', this.#onBacnetGetEventInformation)
       .on('unhandledEvent', this.#onBacnetUnhandledEvent);
 
-    this.addObject(this);
+    this.___setDevice(this);
+    this.___setIdentifier(instance);
+
+    this.#objects.set(getObjectUID(this.identifier.value), this);
+    this.#objectData.push(this.identifier);
+
+    this.on('aftercov', this.#onChildAfterCov);
 
     // ================== PROPERTIES RELATED TO CHILD OBJECTS =================
 
@@ -264,19 +271,19 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       PropertyIdentifier.VENDOR_IDENTIFIER, ApplicationTag.UNSIGNED_INTEGER, false, this.#vendorId));
 
     this.vendorName = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.VENDOR_NAME, ApplicationTag.CHARACTER_STRING, false, opts.vendorName ?? 'w'));
+      PropertyIdentifier.VENDOR_NAME, ApplicationTag.CHARACTER_STRING, false, opts.vendorName ?? '@bacnet-js'));
 
     this.modelName = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.MODEL_NAME, ApplicationTag.CHARACTER_STRING, false, opts.modelName));
+      PropertyIdentifier.MODEL_NAME, ApplicationTag.CHARACTER_STRING, false, opts.modelName ?? '@bacnet-js/device'));
 
     this.firmwareRevision = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.FIRMWARE_REVISION, ApplicationTag.CHARACTER_STRING, false, opts.firmwareRevision));
+      PropertyIdentifier.FIRMWARE_REVISION, ApplicationTag.CHARACTER_STRING, false, opts.firmwareRevision ?? '0.0.1'));
 
     this.applicationSoftwareVersion = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.APPLICATION_SOFTWARE_VERSION, ApplicationTag.CHARACTER_STRING, false, opts.applicationSoftwareVersion));
+      PropertyIdentifier.APPLICATION_SOFTWARE_VERSION, ApplicationTag.CHARACTER_STRING, false, opts.applicationSoftwareVersion ?? '0.0.1'));
 
     this.databaseRevision = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.DATABASE_REVISION, ApplicationTag.UNSIGNED_INTEGER, false, opts.databaseRevision));
+      PropertyIdentifier.DATABASE_REVISION, ApplicationTag.UNSIGNED_INTEGER, false, opts.databaseRevision ?? 1));
 
     // Bindings can be discovered via the "Who-Is" and "I-Am" services.
     // This property represents a list of static bindings and we can leave it empty.
@@ -350,20 +357,22 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    * @typeParam T - The specific BACnet object type
    */
   addObject<T extends BDObject>(object: T): T {
-    if (!this.#objects.has(object.uid)) {
-      this.#objects.set(object.uid, object);
-      this.#objectData.push({ type: ApplicationTag.OBJECTIDENTIFIER, value: object.identifier });
-      object.on('aftercov', this.#onChildAfterCov);
-      if (object instanceof BDStructuredView) {
-        object.___setDevice(this);
-      }
-    }
+    object.___setDevice(this);
+    object.___setIdentifier(instanceManager.next(this, object.objectType.getValue()));
+    this.#objects.set(getObjectUID(object.identifier.value), object);
+    this.#objectData.push(object.identifier);
+    object.on('aftercov', this.#onChildAfterCov);
     return object;
   }
 
   /**
-   * Adds a subordinate object to the structured representation of this device.
-   * The subordinate object must be a Structured View object.
+   * Adds a subordinate BACnet object to this device
+   *
+   * This method registers a new BACnet object with the device and adds it to
+   * the device's object list, just as {@link this.___addObject}. Additionally,
+   * however, this method also registers the object as a subordinate object of
+   * this device, adding it to the device's structured representation. The
+   * subordinate object *must* be a Structured View object.
    *
    * @param subordinate - The Structured View object to add as a new child of
    *                      this Device object
@@ -372,7 +381,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     subordinate = this.addObject(subordinate);
     if (!this.#subordinates.has(subordinate)) {
       this.#subordinates.add(subordinate);
-      this.#subortinateData.push({ type: ApplicationTag.OBJECTIDENTIFIER, value: subordinate.identifier })
+      this.#subortinateData.push(subordinate.identifier);
     }
     return subordinate;
   }
@@ -417,7 +426,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    * @private
    */
   #covQueueWorker = async (cov: BDQueuedCov<any, any, any>) => {
-    const propertyUid = getPropertyUID(cov.object.uid, cov.property.identifier);
+    const propertyUid = getPropertyUID(cov.object.identifier.value, cov.property.identifier);
     for (const subscription of this.#subscriptions.getPropertySubscriptions(propertyUid)) {
       if (cov.property.identifier === PropertyIdentifier.PRESENT_VALUE
         && cov.property === subscription.property
@@ -555,7 +564,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       debug('new request: whoIs');
       const { header } = req;
       if (!header) return;
-      this.#client.iAmResponse(header.sender, this.identifier.instance, Segmentation.NO_SEGMENTATION, this.#vendorId);
+      this.#client.iAmResponse(header.sender, this.identifier.value.instance, Segmentation.NO_SEGMENTATION, this.#vendorId);
     });
   }
 

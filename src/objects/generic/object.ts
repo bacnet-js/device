@@ -8,8 +8,6 @@
  * @module
  */
 
-import assert from 'node:assert';
-
 import { AsyncEventEmitter, type EventMap } from '../../events.js';
 
 import { BDError } from '../../errors.js';
@@ -19,7 +17,6 @@ import {
   type BACNetObjectID,
   type BACNetPropertyID,
   type BACNetReadAccess,
-  ASN1_MAX_INSTANCE,
   ErrorCode,
   ErrorClass,
   ObjectType,
@@ -39,6 +36,7 @@ import {
   BDSingletProperty,
   BDPolledArrayProperty,
   type BDPropertyAccessContext,
+  BDPolledSingletProperty,
 } from '../../properties/index.js';
 
 import { ensureArray } from '../../utils.js';
@@ -48,6 +46,10 @@ import { MAX_ARRAY_INDEX } from '../../constants.js';
 import { TaskQueue, type Task } from '../../taskqueue.js';
 
 import { getObjectUID, type BDObjectUID } from '../../uids.js';
+
+import type { BDDevice } from '../device/device.js';
+
+import { instanceManager } from '../instancemanager.js';
 
 /**
  * Events that can be emitted by a BACnet object
@@ -81,10 +83,9 @@ const unlistedProperties: PropertyIdentifier[] = [
  */
 export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
 
-  /** The unique identifier for this object (type and instance number) */
-  readonly identifier: BACNetObjectID;
+  #device?: BDDevice;
+  #identifier?: BACNetAppData<ApplicationTag.OBJECTIDENTIFIER>;
 
-  readonly uid: BDObjectUID;
 
   /**
    * The list of properties in this object (used for PROPERTY_LIST property)
@@ -100,9 +101,11 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
 
   readonly #queue: TaskQueue;
 
+
+
   readonly objectName: BDSingletProperty<ApplicationTag.CHARACTER_STRING>;
   readonly objectType: BDSingletProperty<ApplicationTag.ENUMERATED, ObjectType>;
-  readonly objectIdentifier: BDSingletProperty<ApplicationTag.OBJECTIDENTIFIER>;
+  readonly objectIdentifier: BDPolledSingletProperty<ApplicationTag.OBJECTIDENTIFIER>;
   readonly propertyList: BDPolledArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>;
   readonly description: BDSingletProperty<ApplicationTag.CHARACTER_STRING>;
   readonly outOfService: BDSingletProperty<ApplicationTag.BOOLEAN>;
@@ -114,27 +117,22 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
    * Creates a new BACnet object
    *
    */
-  constructor(identifier: BACNetObjectID, name: string, description: string = '') {
-    super();
+  constructor(type: ObjectType, name: string, description: string = '') {
 
-    assert(identifier.instance > 0, 'object instance cannot be zero or negative');
-    assert(identifier.instance <= ASN1_MAX_INSTANCE, `object instance cannot be greater than ${ASN1_MAX_INSTANCE}`);
+    super();
 
     this.#queue = new TaskQueue();
     this.#properties = new Map();
     this.#propertyList = [];
 
-    this.uid = getObjectUID(identifier);
-    this.identifier = Object.freeze(identifier);
-
     this.objectName = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.OBJECT_NAME, ApplicationTag.CHARACTER_STRING, false, name));
 
     this.objectType = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.OBJECT_TYPE, ApplicationTag.ENUMERATED, false, identifier.type));
+      PropertyIdentifier.OBJECT_TYPE, ApplicationTag.ENUMERATED, false, type));
 
-    this.objectIdentifier = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.OBJECT_IDENTIFIER, ApplicationTag.OBJECTIDENTIFIER, false, this.identifier));
+    this.objectIdentifier = this.addProperty(new BDPolledSingletProperty(
+      PropertyIdentifier.OBJECT_IDENTIFIER, ApplicationTag.OBJECTIDENTIFIER, () => this.identifier.value));
 
     this.propertyList = this.addProperty(new BDPolledArrayProperty<ApplicationTag.ENUMERATED, PropertyIdentifier>(
       PropertyIdentifier.PROPERTY_LIST, () => this.#propertyList));
@@ -154,6 +152,20 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     this.reliability = this.addProperty(new BDSingletProperty<ApplicationTag.ENUMERATED, Reliability>(
       PropertyIdentifier.RELIABILITY, ApplicationTag.ENUMERATED, false, Reliability.NO_FAULT_DETECTED));
 
+  }
+
+  get identifier(): BACNetAppData<ApplicationTag.OBJECTIDENTIFIER> {
+    if (this.#identifier) {
+      return this.#identifier;
+    }
+    throw new Error('Cannot get object identifier: object has not been added to a device yet');
+  }
+
+  get device(): BDDevice {
+    if (this.#device) {
+      return this.#device;
+    }
+    throw new Error('Cannot get object device: object has not been added to a device yet');
   }
 
   /**
@@ -243,7 +255,7 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
         value: ensureArray(property.___readData(MAX_ARRAY_INDEX, ctx)),
       });
     }
-    return { objectId: this.identifier, values };
+    return { objectId: this.identifier.value, values };
   }
 
   /**
@@ -271,7 +283,7 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
         });
       }
     }
-    return { objectId: this.identifier, values };
+    return { objectId: this.identifier.value, values };
   }
 
   /**
@@ -284,6 +296,25 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
       return property;
     }
     throw new BDError('unknown property', ErrorCode.UNKNOWN_PROPERTY, ErrorClass.PROPERTY);
+  }
+
+  /** @internal */
+  ___setDevice(device: BDDevice) {
+    if (!this.#device) {
+      this.#device = device;
+    } else {
+      throw new Error('Cannot set object device: already set');
+    }
+  }
+
+  /** @internal */
+  ___setIdentifier(instance: number) {
+    if (!this.#identifier) {
+      const type = this.objectType.getValue();
+      this.#identifier = { type: ApplicationTag.OBJECTIDENTIFIER, value: { type, instance } };
+    } else {
+      throw new Error('Cannot set object identifier: already set');
+    }
   }
 
   /**
