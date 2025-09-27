@@ -2,6 +2,9 @@
 import type { BDDevice } from "./device/device.js";
 import type { ObjectType } from "@bacnet-js/client";
 
+/**
+ * @internal
+ */
 class InstanceManager {
 
   #numbers: Map<BDDevice, Partial<Record<ObjectType, number>>>;
