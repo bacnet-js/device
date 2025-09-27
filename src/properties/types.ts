@@ -1,40 +1,40 @@
 
-import { 
+import {
   type BACNetAppData,
   type ApplicationTag,
   type ApplicationTagValueTypeMap,
 } from '@bacnet-js/client';
 
-import { 
+import {
   type EventMap,
   AsyncEventEmitter,
 } from '../events.js';
 
-import { 
+import {
   type BDAbstractProperty,
 } from './abstract.js';
 
 /**
  * Maps the names of property events to the respective arrays of arguments.
  * Used to strongly type calls to `AsyncEventEmitter.prototype.on()`.
- * 
+ *
  * @see {@link AsyncEventEmitter}
  */
 export interface BDPropertyEvents<
-  Tag extends ApplicationTag, 
-  Type extends ApplicationTagValueTypeMap[Tag], 
+  Tag extends ApplicationTag,
+  Type extends ApplicationTagValueTypeMap[Tag],
   Data extends BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[],
-> extends EventMap {   
-  /** 
+> extends EventMap {
+  /**
    * Emitted before a property value changes. Listeners can throw in order to
    * block the change from going through (useful for additional validation).
    */
-  beforecov: [property: BDAbstractProperty<Tag, Type, Data>, raw: Data],
-  /** 
-   * Emitted after a property value has changed. Errors throws by listeners 
-   * will be ignored. 
+  beforecov: [raw: Data, property: BDAbstractProperty<Tag, Type, Data>],
+  /**
+   * Emitted after a property value has changed. Errors throws by listeners
+   * will be ignored.
    */
-  aftercov: [property: BDAbstractProperty<Tag, Type, Data>, raw: Data],
+  aftercov: [raw: Data, property: BDAbstractProperty<Tag, Type, Data>],
 }
 
 /**

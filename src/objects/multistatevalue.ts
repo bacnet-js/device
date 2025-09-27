@@ -55,7 +55,7 @@ export class BDMultiStateValue extends BDObject {
     this.presentValue = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.PRESENT_VALUE, ApplicationTag.UNSIGNED_INTEGER, opts.writable ?? false, 1));
 
-    this.presentValue.on('beforecov', (prop, data) => {
+    this.presentValue.on('beforecov', (data, prop) => {
       if (data.value < 1 || data.value > numberOfStatesValue) {
         throw new BDError('state index out of range', ErrorCode.INCONSISTENT_PARAMETERS, ErrorClass.PROPERTY);
       }

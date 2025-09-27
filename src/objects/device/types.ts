@@ -79,7 +79,7 @@ export interface BDQueuedCov<Tag extends ApplicationTag, Type extends Applicatio
   property: BDAbstractProperty<Tag, Type, Data>;
 
   /** The new value of the property */
-  value: Data;
+  data: Data;
 }
 
 /**

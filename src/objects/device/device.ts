@@ -432,11 +432,11 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
         && cov.property === subscription.property
         && subscription.object instanceof BDNumericObject
         && subscription.lastDataSent
-        && Math.abs((cov.value as BACNetAppData<any, number>).value - (subscription.lastDataSent as BACNetAppData<any, number>).value) < subscription.object.covIncrement.getData().value
+        && Math.abs((cov.data as BACNetAppData<any, number>).value - (subscription.lastDataSent as BACNetAppData<any, number>).value) < subscription.object.covIncrement.getData().value
       ) {
         continue;
       }
-      subscription.lastDataSent = cov.value;
+      subscription.lastDataSent = cov.data;
       if (subscription.issueConfirmedNotifications) {
         await sendConfirmedCovNotification(this.#client, this, subscription, cov);
         subscription.covIncrement += 1;
@@ -459,14 +459,14 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    *
    * @param object - The object that changed
    * @param property - The property that changed
-   * @param value - The new value
+   * @param data - The new value
    * @private
    */
-  #onChildAfterCov = async (object: BDObject, property: BDAbstractProperty<any, any, any>, value: BACNetAppData | BACNetAppData[]) => {
+  #onChildAfterCov = async (data: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>, object: BDObject) => {
     // We do not `await` the promise as we do not want slow consumers of
     // confirmed CoV notifications in the BACnet network to indirectly block
     // further operations on this object.
-    this.#covqueue.push({ object, property, value });
+    this.#covqueue.push({ object, property, data });
   }
 
 

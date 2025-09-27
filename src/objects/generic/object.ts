@@ -45,18 +45,14 @@ import { MAX_ARRAY_INDEX } from '../../constants.js';
 
 import { TaskQueue, type Task } from '../../taskqueue.js';
 
-import { getObjectUID, type BDObjectUID } from '../../uids.js';
-
 import type { BDDevice } from '../device/device.js';
-
-import { instanceManager } from '../instancemanager.js';
 
 /**
  * Events that can be emitted by a BACnet object
  */
 export interface BDObjectEvents extends EventMap {
   /** Emitted after a property value has changed */
-  aftercov: [object: BDObject, property: BDAbstractProperty<any, any, any>, newValue: BACNetAppData | BACNetAppData[]],
+  aftercov: [data: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>, object: BDObject],
 }
 
 /**
@@ -324,11 +320,11 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
    * the event to object subscribers.
    *
    * @param property - The property that changed
-   * @param nextValue - The new value that was set
+   * @param value - The new value that was set
    * @private
    */
-  #onPropertyAfterCov = async (property: BDAbstractProperty<any, any, any>, nextValue: BACNetAppData | BACNetAppData[]) => {
-    await this.___asyncEmitSeries(false, 'aftercov', this, property, nextValue);
+  #onPropertyAfterCov = async (value: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>) => {
+    await this.___asyncEmitSeries(false, 'aftercov', value, property, this);
   };
 
 }
