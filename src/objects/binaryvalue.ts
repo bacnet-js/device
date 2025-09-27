@@ -1,27 +1,27 @@
 
 import { BDSingletProperty } from '../properties/index.js';
 import { BDObject } from './generic/object.js';
-import { 
+import {
   ObjectType,
   ApplicationTag,
   PropertyIdentifier,
   BinaryPV,
 } from '@bacnet-js/client';
 
-export interface BDBinaryValueOpts { 
-  name: string, 
+export interface BDBinaryValueOpts {
+  name: string,
   writable: boolean,
   description?: string,
   presentValue?: BinaryPV,
 }
 
-export class BDBinaryValue extends BDObject { 
-  
+export class BDBinaryValue extends BDObject {
+
   readonly presentValue: BDSingletProperty<ApplicationTag.ENUMERATED, BinaryPV>;
-  
-  constructor(instance: number, opts: BDBinaryValueOpts) {
-    super({ type: ObjectType.BINARY_VALUE, instance }, opts.name, opts.description);
-    
+
+  constructor(opts: BDBinaryValueOpts) {
+    super(ObjectType.BINARY_VALUE, opts.name, opts.description);
+
     this.presentValue = this.addProperty(new BDSingletProperty<ApplicationTag.ENUMERATED, BinaryPV>(
       PropertyIdentifier.PRESENT_VALUE, ApplicationTag.ENUMERATED, opts.writable ?? false, opts.presentValue ?? BinaryPV.INACTIVE));
 

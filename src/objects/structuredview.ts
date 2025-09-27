@@ -38,11 +38,9 @@ export class BDStructuredView extends BDObject {
   readonly #subordinates: Set<BDObject>;
   readonly #subortinateData: BACNetAppData<ApplicationTag.OBJECTIDENTIFIER>[];
 
-  #device?: BDDevice;
+  constructor(opts: BDStructuredViewOpts) {
 
-  constructor(instance: number, opts: BDStructuredViewOpts) {
-
-    super({ type: ObjectType.STRUCTURED_VIEW, instance }, opts.name, opts.description);
+    super(ObjectType.STRUCTURED_VIEW, opts.name, opts.description);
 
     this.#subordinates = new Set();
     this.#subortinateData = [];
@@ -55,15 +53,6 @@ export class BDStructuredView extends BDObject {
 
   }
 
-
-  /** @internal */
-  ___setDevice(device: BDDevice) {
-    if (this.#device) {
-      throw new Error('Cannot set object device: already set');
-    }
-    this.#device = device;
-  }
-
   /**
    * Adds a subordinate object to this structured view.
    *
@@ -73,13 +62,10 @@ export class BDStructuredView extends BDObject {
     if (subordinate as any === this) {
       throw new Error('Cannot add subordinate: a structured view object cannot have itself as one of its own subordinates');
     }
-    if (!this.#device) {
-      throw new Error('Cannot add subordinate: this structured view object has not been added to a device or another structured view object');
-    }
-    this.#device.addObject(subordinate);
+    this.device.addObject(subordinate);
     if (!this.#subordinates.has(subordinate)) {
       this.#subordinates.add(subordinate);
-      this.#subortinateData.push({ type: ApplicationTag.OBJECTIDENTIFIER, value: subordinate.identifier })
+      this.#subortinateData.push(subordinate.identifier);
     }
     return subordinate;
   }

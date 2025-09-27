@@ -7,21 +7,21 @@ import {
   ApplicationTag,
   PropertyIdentifier,
 } from '@bacnet-js/client';
- 
+
 import { BDError } from '../../errors.js';
 import { type BDPropertyAccessContext } from './../types.js';
 
 import { BDAbstractArrayProperty } from './abstract.js';
 
 export class BDArrayProperty<
-  Tag extends ApplicationTag, 
+  Tag extends ApplicationTag,
   Type extends ApplicationTagValueTypeMap[Tag] = ApplicationTagValueTypeMap[Tag],
-> extends BDAbstractArrayProperty<Tag, Type> { 
-  
+> extends BDAbstractArrayProperty<Tag, Type> {
+
   readonly #writable: boolean;
-  
+
   #data: BACNetAppData<Tag, Type>[];
-  
+
   constructor(identifier: PropertyIdentifier, writable: boolean, data: BACNetAppData<Tag, Type>[]) {
     super(identifier);
     this.#data = data;
@@ -32,24 +32,24 @@ export class BDArrayProperty<
     return this.#data;
   }
 
-  async setData(data: BACNetAppData<Tag, Type>[]) { 
-    await this.___asyncEmitSeries(true, 'beforecov', this, data);
+  async setData(data: BACNetAppData<Tag, Type>[]) {
+    await this.___asyncEmitSeries(true, 'beforecov', data, this);
     this.#data = data;
-    await this.___asyncEmitSeries(false, 'aftercov', this, data);
+    await this.___asyncEmitSeries(false, 'aftercov', data, this);
   }
 
   /**
-   * 
+   *
    * @internal
    */
-  async ___writeData(data: BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[]) { 
-    if (!this.#writable) { 
+  async ___writeData(data: BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[]) {
+    if (!this.#writable) {
       throw new BDError('not writable', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
     }
-    if (!Array.isArray(data)) { 
+    if (!Array.isArray(data)) {
       data = [data];
     }
     await this.setData(data);
   }
-  
+
 }
