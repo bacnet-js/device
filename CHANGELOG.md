@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.5.0 - 2025-09-28
+#### Miscellaneous Chores
+- fixes cocogitto's config re: broken reference to git tag - (d531c0b) - Jacopo Scazzosi
+
+- - -
+
 ## v0.4.0 - 2025-09-28
 #### Features
 - automatic instance number management (#21) - (c15b064) - Jacopo Scazzosi
