@@ -71,7 +71,6 @@ import { AsyncEventEmitter } from '../../events.js';
 import { SubscriptionStore } from './subscriptionstore.js';
 import { getObjectUID, getPropertyUID, type BDObjectUID } from '../../uids.js';
 import { BDNumericObject } from '../numeric/numeric.js';
-import { instanceManager } from '../instancemanager.js';
 
 const { default: BACnetClient } = bacnet;
 
@@ -130,6 +129,11 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
 
   readonly #knownDevices: Map<number, IAMResult>;
 
+  /**
+   * Dictionary of next instance numbers for each object type.
+   */
+  readonly #nextInstanceNumber: Partial<Record<ObjectType, number>>;
+
   readonly objectList: BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
   readonly structuredObjectList: BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
   readonly protocolVersion: BDSingletProperty<ApplicationTag.UNSIGNED_INTEGER>;
@@ -185,6 +189,8 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
 
     this.#covqueue = fastq.promise(null, this.#covQueueWorker, 1);
     this.#subscriptions = new SubscriptionStore();
+
+    this.#nextInstanceNumber = Object.create(null);
 
     this.#client = new BACnetClient(opts)
       .on('whoHas', this.#onBacnetWhoHas)
@@ -357,8 +363,12 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    * @typeParam T - The specific BACnet object type
    */
   addObject<T extends BDObject>(object: T): T {
+    const type = object.objectType.getValue();
     object.___setDevice(this);
-    object.___setIdentifier(instanceManager.next(this, object.objectType.getValue()));
+    if (!(type in this.#nextInstanceNumber)) {
+      this.#nextInstanceNumber[type] = 1;
+    }
+    object.___setIdentifier(this.#nextInstanceNumber[type]!++);
     this.#objects.set(getObjectUID(object.identifier.value), object);
     this.#objectData.push(object.identifier);
     object.on('aftercov', this.#onChildAfterCov);
