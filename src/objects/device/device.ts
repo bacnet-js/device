@@ -402,8 +402,10 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     this.#covqueue.kill();
     this.removeListener('aftercov', this.#onChildAfterCov);
     for (const object of this.#objects.values()) {
-      object.destroy();
-      object.removeListener('aftercov', this.#onChildAfterCov);
+      if (object !== this) {
+        object.destroy();
+        object.removeListener('aftercov', this.#onChildAfterCov);
+      }
     }
     this.#client
       .removeListener('whoHas', this.#onBacnetWhoHas)
