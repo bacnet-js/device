@@ -399,6 +399,12 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   override destroy() {
     super.destroy();
     this.#client.close();
+    this.#covqueue.kill();
+    this.removeListener('aftercov', this.#onChildAfterCov);
+    for (const object of this.#objects.values()) {
+      object.destroy();
+      object.removeListener('aftercov', this.#onChildAfterCov);
+    }
     this.#client
       .removeListener('whoHas', this.#onBacnetWhoHas)
       .removeListener('iAm', this.#onBacnetIAm)
@@ -417,10 +423,6 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       .removeListener('removeListElement', this.#onBacnetRemoveListElement)
       .removeListener('getEventInformation', this.#onBacnetGetEventInformation)
       .removeListener('unhandledEvent', this.#onBacnetUnhandledEvent);
-    this.#covqueue.kill();
-    for (const object of this.#objects.values()) {
-      object.destroy();
-    }
     this.#objects.clear();
     this.#objectData.splice(0, this.#objectData.length);
     this.#subordinates.clear();
