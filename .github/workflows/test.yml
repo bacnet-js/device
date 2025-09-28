@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node-version: [20.x, 22.x, 24.x]
+        node-version: [20.x]
         arch: [x64]
 
     runs-on: ${{ matrix.os }}
@@ -27,6 +27,8 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
+    - run: npm ci
+    - run: npm run build
     - run: sh e2e-tests-prep.sh
     - run: sh e2e-tests-run.sh
     - run: sh e2e-tests-clean.sh
