@@ -1,10 +1,10 @@
 
-import { 
+import {
   type BDNumericValueOpts,
   BDNumericObject,
 } from './numeric.js';
 
-import { 
+import {
   ApplicationTag,
   ObjectType,
 } from '@bacnet-js/client';
@@ -20,9 +20,9 @@ export type BDAnalogValueObjectType =
   | ObjectType.ANALOG_INPUT
   | ObjectType.ANALOG_OUTPUT;
 
-export class BDAnalogValue extends BDNumericObject<ApplicationTag.REAL> { 
-  constructor(instance: number, opts: BDAnalogValueOpts, type: BDAnalogValueObjectType = ObjectType.ANALOG_VALUE) {
-    super({ type, instance }, ApplicationTag.REAL, {
+export class BDAnalogValue extends BDNumericObject<ApplicationTag.REAL> {
+  constructor(opts: BDAnalogValueOpts, type: BDAnalogValueObjectType = ObjectType.ANALOG_VALUE) {
+    super(type, ApplicationTag.REAL, {
       ...opts,
       presentValue: opts.presentValue ?? 0,
       maxPresentValue: opts.maxPresentValue ?? Number.MAX_SAFE_INTEGER,

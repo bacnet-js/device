@@ -3,12 +3,12 @@ import {
   ApplicationTag,
 } from '@bacnet-js/client';
 
-import { 
+import {
     getPropertyUID,
-  type BDPropertyUID, 
+  type BDPropertyUID,
 } from '../../uids.js';
 
-import  { 
+import  {
   type BDSubscription,
   type BDSubscriptionAppData,
 } from './types.js';
@@ -32,7 +32,7 @@ const subscriptionDataArraySortingFn = (a: BDSubscriptionAppData, b: BDSubscript
 /**
  * Like Array.prototype.findIndex, but returns the length of the array if no element satisfies the predicate.
  */
-const findIndexOrLength = <T>(arr: T[], predicate: (item: T) => boolean): number => { 
+const findIndexOrLength = <T>(arr: T[], predicate: (item: T) => boolean): number => {
   const idx = arr.findIndex(predicate);
   return idx === -1 ? arr.length : idx;
 };
@@ -40,25 +40,25 @@ const findIndexOrLength = <T>(arr: T[], predicate: (item: T) => boolean): number
 /**
  * Helper class to keep track of active subscriptions.
  */
-export class SubscriptionStore { 
-  
+export class SubscriptionStore {
+
   /** Array of subscriptions sorted by expiration date in ascending order. */
   #deviceSubData: BDSubscriptionAppData[];
-  
+
   /** Maps each property (through its UID) to the array of subscriptions for
    * that property, sorted by expiration date in ascending order. */
   #propertySubs: Map<BDPropertyUID, BDSubscription<any, any, any>[]>;
-  
+
   /** Timeout ID for clearing expired subscriptions. */
   #clearTimeoutId: NodeJS.Timeout | null;
-  
+
   constructor() {
     this.#deviceSubData = [];
     this.#propertySubs = new Map();
     this.#clearTimeoutId = null;
   }
-  
-  #setClearTimeout() { 
+
+  #setClearTimeout() {
     if (this.#clearTimeoutId === null && this.#deviceSubData.length > 0) {
       this.#clearTimeoutId = setTimeout(this.#onClearTimeout, this.#deviceSubData[0].value.expiresAt - Date.now());
     }
@@ -73,40 +73,39 @@ export class SubscriptionStore {
     this.#clearTimeoutId = null;
     this.#setClearTimeout();
   }
-  
+
   add(subscription: BDSubscription<any, any, any>) {
-    const propertyUid = getPropertyUID(subscription.object.uid, subscription.property.identifier);
+    const propertyUid = getPropertyUID(subscription.object.identifier.value, subscription.property.identifier);
     let propertySubscriptions = this.#propertySubs.get(propertyUid);
     if (!propertySubscriptions) {
       propertySubscriptions = [];
       this.#propertySubs.set(propertyUid, propertySubscriptions);
-    } 
+    }
     const previousSub = propertySubscriptions.find((existingSub) => {
       return existingSub.subscriber.address === subscription.subscriber.address
         && existingSub.subscriptionProcessId === subscription.subscriptionProcessId;
     });
     if (previousSub) {
       previousSub.expiresAt = subscription.expiresAt;
-    } else { 
-      propertySubscriptions.push(subscription);  
+    } else {
+      propertySubscriptions.push(subscription);
       this.#deviceSubData.push({ type: ApplicationTag.COV_SUBSCRIPTION, value: subscription });
     }
     propertySubscriptions.sort(subscriptionArraySortingFn);
     this.#deviceSubData.sort(subscriptionDataArraySortingFn);
     this.#setClearTimeout();
   }
-  
+
   getPropertySubscriptions(propertyUid: BDPropertyUID): BDSubscription<any, any, any>[] {
     return this.#propertySubs.get(propertyUid) ?? EMPTY_ARRAY;
   }
-  
+
   getDeviceSubscriptionData(): BDSubscriptionAppData[] {
     const now = Date.now();
-    for (const subscription of this.#deviceSubData) { 
+    for (const subscription of this.#deviceSubData) {
       subscription.value.timeRemaining = Math.floor((subscription.value.expiresAt - now) / 1000);
     }
     return this.#deviceSubData;
   }
-  
-}
 
+}

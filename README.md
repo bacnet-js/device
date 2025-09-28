@@ -29,16 +29,16 @@ properties required by the BACnet specification.
 2. **Separation of concerns**: maintains separate classes for BACnet objects,
    properties, and network operations, loosely coupled via events.
 3. **Backpressure management**: operations return Promises that resolve only
-   after full processing and acknowledgment, creating natural throttling; for 
+   after full processing and acknowledgment, creating natural throttling; for
    example, COV notifications wait for subscriber confirmation before processing
    the next change.
-4. **Object-level transactions**: access to property values, whether by other 
+4. **Object-level transactions**: access to property values, whether by other
    devices in the BACnet network or by consumers of this library, are processed
-   through per-object FIFO queues to maintain consistency and prevent race 
+   through per-object FIFO queues to maintain consistency and prevent race
    conditions.
 
 This library is built on top of the wonderful [@bacnet-js/client], a TypeScript
-implementation of BACnet's protocol. Any improvement that is applicable to 
+implementation of BACnet's protocol. Any improvement that is applicable to
 [@bacnet-js/client] is contributed upstream.
 
 ## Documentation
@@ -54,90 +54,10 @@ for details.
 
 ## Usage
 
-- [Initializing a device](#initializing-a-device)
-- [Adding an object to a device](#adding-an-object-to-a-device)
-- [Changing property values](#changing-property-values)
-- [Extending object classes](#extending-object-classes)
-
-### Initializing a device
-
-```typescript
-import { BDDevice } from 'bacnet-device';
-
-// The instance number - in this case 1234 - must be unique on the network
-// and comprised between 0 and 4194303.
-const device = new BDDevice(1234, {
-  port: 47808,            // Standard BACnet/IP port
-  interface: '0.0.0.0',   // Listen on all interfaces
-  broadcastAddress: '255.255.255.255',
-  name: 'My BACnet Device',
-  description: 'some description',
-  modelName: 'Model XYZ',
-  firmwareRevision: '1.0.0',
-  applicationSoftwareVersion: '1.0.0',
-  databaseRevision: 1
-});
-
-// Listen for errors
-device.on('error', (err) => {
-  console.error('BACnet error:', err);
-});
-```
-
-### Adding an object to a device
-
-This library provides a collection of classes modeling BACnet object types.
-Instances must always be added to one (and only one) device. For any of the
-supported object types, instances of the respective class instantiate property
-attributes matching the properties defined in the BACnet specification.
-
-```typescript
-import { BDAnalogValue } from 'bacnet-device';
-import { EngineeringUnits } from '@innovation-system/node-bacnet';
-
-const analogValueObj = device.addObject(new BDAnalogValue(1, { 
-  name: 'Zone Temperature', 
-  unit: EngineeringUnits.DEGREES_CELSIUS,
-}));
-```
-
-### Accessing properties within transactions
-
-Properties should be accessed within object-level transactions, whether to
-read or write data, to guarantee consistency and prevent race conditions
-between operations originating from the BACnet network and those originating
-from consumers of this library.
-
-```typescript
-await analogValueObj.transaction(async () => {
-  const value = analogValueObj.presentValue.getValue();
-  await analogValueObj.presentValue.setValue(value * 2);
-});
-```
-
-### Getting the value of a property
-
-```typescript
-const value = analogValueObj.presentValue.getValue();
-```
-
-### Changing property values
-
-```typescript 
-await analogValueObj.presentValue.setValue(25.6);
-```
-
-This will result in CoV events being sent to active subscribers. CoV
-notifications for numeric objects are sent only when the change in value
-exceeds the threshold defined via the `covIncrement` property.
-
-### Extending object classes
-
-Have a look at the source code for object classes implementing the simpler
-BACnet object types and use the same pattern in your code:
-
-- [`BDAnalogValue`](https://github.com/bacnet-js/device/blob/main/src/objects/numeric/analogvalue.ts)
-- [`BDIntegerValue`](https://github.com/bacnet-js/device/blob/main/src/objects/numeric/integervalue.ts)
+See the [examples] directory for working usage examples which you should be
+able to run locally and use with any BACnet client of your choice. For local
+testing I tend to use [YABE], which is native to Windows but can be made to
+work reasonably well on macOS and Linux via [Wine].
 
 
 [device]: https://github.com/bacnet-js/device
@@ -148,3 +68,6 @@ BACnet object types and use the same pattern in your code:
 [@bacnet-js/client]: https://github.com/bacnet-js/node-bacnet
 [LICENSE]: https://github.com/bacnet-js/device/blob/main/LICENSE
 [CONFORMANCE.md]: https://github.com/bacnet-js/device/blob/main/CONFORMANCE.md
+[examples]: https://github.com/bacnet-js/device/tree/main/src/examples
+[YABE]: https://sourceforge.net/projects/yetanotherbacnetexplorer/
+[Wine]: https://www.winehq.org

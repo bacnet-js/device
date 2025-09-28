@@ -1,23 +1,23 @@
 
-import { 
+import {
   type BDAnalogValueOpts,
   BDAnalogValue,
   } from './analogvalue.js';
-  
-import { 
+
+import {
   ObjectType,
 } from '@bacnet-js/client';
 
-export interface BDAnalogInputOpts extends BDAnalogValueOpts { 
+export interface BDAnalogInputOpts extends BDAnalogValueOpts {
 }
 
 /**
  * Implements a BACnet Analog Input object
- * 
+ *
  * The Analog Input object represents a physical or virtual analog input source such as a
  * temperature sensor, pressure sensor, or other analog measurement device. This object
  * type provides a standard way to represent analog inputs in BACnet systems.
- * 
+ *
  * Required properties according to the BACnet specification:
  * - Object_Identifier (automatically added by BACnetObject)
  * - Object_Name (automatically added by BACnetObject)
@@ -28,16 +28,16 @@ export interface BDAnalogInputOpts extends BDAnalogValueOpts {
  * - Out_Of_Service
  * - Units
  * - Reliability (optional but commonly included)
- * 
+ *
  * @extends BDObject
  */
 export class BDAnalogInput extends BDAnalogValue {
-  
+
   /**
    * Creates a new BACnet Analog Input object
    */
-  constructor(instance: number, opts: BDAnalogInputOpts) {
-    super(instance, opts, ObjectType.ANALOG_INPUT);
+  constructor(opts: BDAnalogInputOpts) {
+    super(opts, ObjectType.ANALOG_INPUT);
   }
-  
+
 }
