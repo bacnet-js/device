@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.0 - 2025-09-28
+#### Features
+- automatic instance number management (#21) - (c15b064) - Jacopo Scazzosi
+
+- - -
+
 ## v0.3.0 - 2025-09-26
 #### Features
 - support for Structured View object type (#17) - (abf2658) - Jacopo Scazzosi
