@@ -191,6 +191,11 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     return this.#queue.run(task);
   }
 
+
+  destroy() {
+    this.#queue.kill();
+  }
+
   /**
    * Writes a value to a property
    *

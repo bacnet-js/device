@@ -125,7 +125,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   readonly #objectData: BACNetAppData<ApplicationTag.OBJECTIDENTIFIER>[];
 
   readonly #subordinates: Set<BDStructuredView>;
-  readonly #subortinateData: BACNetAppData<ApplicationTag.OBJECTIDENTIFIER>[];
+  readonly #subordinateData: BACNetAppData<ApplicationTag.OBJECTIDENTIFIER>[];
 
   readonly #knownDevices: Map<number, IAMResult>;
 
@@ -185,7 +185,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     this.#objectData = [];
 
     this.#subordinates = new Set();
-    this.#subortinateData = [];
+    this.#subordinateData = [];
 
     this.#covqueue = fastq.promise(null, this.#covQueueWorker, 1);
     this.#subscriptions = new SubscriptionStore();
@@ -225,7 +225,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
       PropertyIdentifier.OBJECT_LIST, () => this.#objectData));
 
     this.structuredObjectList = this.addProperty(new BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>(
-      PropertyIdentifier.STRUCTURED_OBJECT_LIST, () => this.#subortinateData));
+      PropertyIdentifier.STRUCTURED_OBJECT_LIST, () => this.#subordinateData));
 
     // ====================== PROTOCOL-RELATED PROPERTIES =====================
 
@@ -391,9 +391,40 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     subordinate = this.addObject(subordinate);
     if (!this.#subordinates.has(subordinate)) {
       this.#subordinates.add(subordinate);
-      this.#subortinateData.push(subordinate.identifier);
+      this.#subordinateData.push(subordinate.identifier);
     }
     return subordinate;
+  }
+
+  override destroy() {
+    super.destroy();
+    this.#client.close();
+    this.#client
+      .removeListener('whoHas', this.#onBacnetWhoHas)
+      .removeListener('iAm', this.#onBacnetIAm)
+      .removeListener('iHave', this.#onBacnetIHave)
+      .removeListener('error', this.#onBacnetError)
+      .removeListener('readRange', this.#onBacnetReadRange)
+      .removeListener('deviceCommunicationControl', this.#onBacnetDeviceCommunicationControl)
+      .removeListener('listening', this.#onBacnetListening)
+      .removeListener('readProperty', this.#onBacnetReadProperty)
+      .removeListener('whoIs', this.#onBacnetWhoIs)
+      .removeListener('subscribeCov', this.#onBacnetSubscribeCov)
+      .removeListener('subscribeProperty', this.#onBacnetSubscribeProperty)
+      .removeListener('readPropertyMultiple', this.#onBacnetReadPropertyMultiple)
+      .removeListener('writeProperty', this.#onBacnetWriteProperty)
+      .removeListener('addListElement', this.#onBacnetAddListElement)
+      .removeListener('removeListElement', this.#onBacnetRemoveListElement)
+      .removeListener('getEventInformation', this.#onBacnetGetEventInformation)
+      .removeListener('unhandledEvent', this.#onBacnetUnhandledEvent);
+    this.#covqueue.kill();
+    for (const object of this.#objects.values()) {
+      object.destroy();
+    }
+    this.#objects.clear();
+    this.#objectData.splice(0, this.#objectData.length);
+    this.#subordinates.clear();
+    this.#subordinateData.splice(0, this.#objectData.length);
   }
 
   // ==========================================================================
