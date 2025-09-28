@@ -70,6 +70,12 @@ export class BDStructuredView extends BDObject {
     return subordinate;
   }
 
+  override destroy() {
+    super.destroy();
+    this.#subordinates.clear();
+    this.#subortinateData.splice(0, this.#subortinateData.length);
+  }
+
 
 
 }
