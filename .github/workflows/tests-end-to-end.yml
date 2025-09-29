@@ -33,17 +33,18 @@ jobs:
 
     - name: Cache bacnet-stack-server image
       uses: actions/cache@v4
+      id: cache-bacnet-stack-server-docker-image
       with:
         path: bacnet-stack-server.tar
         key: ${{ runner.os }}-${{ hashFiles('docker/bacnet-stack-server/*') }}
 
     - name: Load cached bacnet-stack-server image
-      if: ${{ steps.cache-npm.outputs.cache-hit == 'true' }}
+      if: ${{ steps.cache-bacnet-stack-server-docker-image.outputs.cache-hit == 'true' }}
       continue-on-error: false
       run: docker load -i bacnet-stack-server.tar
 
     - name: Build bacnet-stack-server image
-      if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+      if: ${{ steps.cache-bacnet-stack-server-docker-image.outputs.cache-hit != 'true' }}
       continue-on-error: false
       run: docker build -t bacnet-stack-server --platform linux/amd64 docker/bacnet-stack-server && docker save -o bacnet-stack-server.tar bacnet-stack-server
 
