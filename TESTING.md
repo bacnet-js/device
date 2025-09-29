@@ -20,7 +20,7 @@ other container (which runs the test suite) can trigger BACnet queries. Build
 the image as follows before running the E2E test suite:
 
 ```sh
-docker build -t bacnet-stack-server --platform linux/amd64 .
+docker build -t bacnet-stack-server --platform linux/amd64 docker/bacnet-stack-server
 ```
 
 ## Running the E2E test suite
