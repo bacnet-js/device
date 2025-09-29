@@ -59,6 +59,10 @@ able to run locally and use with any BACnet client of your choice. For local
 testing I tend to use [YABE], which is native to Windows but can be made to
 work reasonably well on macOS and Linux via [Wine].
 
+## Testing
+
+See [TESTING.md].
+
 
 [device]: https://github.com/bacnet-js/device
 [apidocs]: https://bacnet-js.github.io/device
@@ -68,6 +72,7 @@ work reasonably well on macOS and Linux via [Wine].
 [@bacnet-js/client]: https://github.com/bacnet-js/node-bacnet
 [LICENSE]: https://github.com/bacnet-js/device/blob/main/LICENSE
 [CONFORMANCE.md]: https://github.com/bacnet-js/device/blob/main/CONFORMANCE.md
+[TESTING.md]: https://github.com/bacnet-js/device/blob/main/TESTING.md
 [examples]: https://github.com/bacnet-js/device/tree/main/src/examples
 [YABE]: https://sourceforge.net/projects/yetanotherbacnetexplorer/
 [Wine]: https://www.winehq.org
