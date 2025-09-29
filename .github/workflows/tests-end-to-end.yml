@@ -45,7 +45,7 @@ jobs:
     - name: Build bacnet-stack-server image
       if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
       continue-on-error: false
-      run: docker build -t bacnet-stack-server --platform linux/amd64 . && docker save -o bacnet-stack-server.tar bacnet-stack-server
+      run: docker build -t bacnet-stack-server --platform linux/amd64 docker/bacnet-stack-server && docker save -o bacnet-stack-server.tar bacnet-stack-server
 
     - name: Install dependencies
       run: npm ci
