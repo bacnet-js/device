@@ -1,7 +1,4 @@
 
-cd docker/bacnet-stack-server
-docker build -t bacnet-stack-server --platform linux/amd64 .
-cd ../..
 
 docker network create bacnet-js
 
