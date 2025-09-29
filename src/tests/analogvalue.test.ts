@@ -12,25 +12,28 @@ describe('AnalogValue', () => {
 
   beforeEach(async () => {
     device = new BDDevice(1, {
-      // interface: '0.0.0.0',
       name: 'Test Device',
     });
     device.on('error', console.error);
-  });
-
-  afterEach(async () => {
-    device.destroy();
-    await new Promise(resolve => setTimeout(resolve, 10));
-  })
-
-  it('should read presentvalue', async () => {
     device.addObject(new BDAnalogValue({
       name: 'Test Value',
       unit: EngineeringUnits.AMPERES,
       presentValue: 0,
     }));
+  });
+
+  afterEach(async () => {
+    device.destroy();
+  })
+
+  it('should read the object\'s Present_Value property', async () => {
     const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
     deepStrictEqual(parseInt(value), 0);
+  });
+
+  it('should read the object\'s Units property', async () => {
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.UNITS);
+    deepStrictEqual(value, 'amperes');
   });
 
 });

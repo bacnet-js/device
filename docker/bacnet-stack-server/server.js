@@ -21,7 +21,7 @@ const server = createServer((req, res) => {
         res.end(err.stack ?? err);
       } else {
         res.statusCode = 200;
-        res.end(stdout);
+        res.end(stdout.trim());
       }
     });
   });
