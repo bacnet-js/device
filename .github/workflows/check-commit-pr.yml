@@ -3,7 +3,7 @@
 # to keep things as portable as possible and to easily replicate the
 # workflow locally.
 
-name: check commit messages
+name: Check commit messages and PR titles
 
 on:
   push:
@@ -27,4 +27,3 @@ jobs:
       - name: Check PR title using cocogitto
         if: github.event_name == 'pull_request'
         run: docker run -t ghcr.io/cocogitto/cog:latest verify "${{ github.event.pull_request.title }}"
-      

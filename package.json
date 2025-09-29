@@ -13,7 +13,7 @@
     "clean": "rm -rf ./dist",
     "build": "npm run clean && tsc -p .",
     "hooks": "cog install-hook --all",
-    "test": "echo \"done\""
+    "test": "echo \"see TESTING.md\""
   },
   "author": "Jacopo Scazzosi <jacopo@scazzosi.com>",
   "license": "MIT",
@@ -39,6 +39,7 @@
     "dist/**/*.js",
     "dist/**/*.d.ts",
     "!dist/examples/**/*",
+    "!dist/tests/**/*",
     "CONFORMANCE.md"
   ],
   "keywords": [

@@ -1,0 +1,64 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: E2E Test Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [20.x]
+        arch: [x64]
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} / Node ${{ matrix.node-version }} ${{ matrix.arch }}
+
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Cache bacnet-stack-server image
+      uses: actions/cache@v4
+      id: cache-bacnet-stack-server-docker-image
+      with:
+        path: bacnet-stack-server.tar
+        key: ${{ runner.os }}-${{ hashFiles('docker/bacnet-stack-server/*') }}
+
+    - name: Load cached bacnet-stack-server image
+      if: ${{ steps.cache-bacnet-stack-server-docker-image.outputs.cache-hit == 'true' }}
+      continue-on-error: false
+      run: docker load -i bacnet-stack-server.tar
+
+    - name: Build bacnet-stack-server image
+      if: ${{ steps.cache-bacnet-stack-server-docker-image.outputs.cache-hit != 'true' }}
+      continue-on-error: false
+      run: docker build -t bacnet-stack-server --platform linux/amd64 docker/bacnet-stack-server && docker save -o bacnet-stack-server.tar bacnet-stack-server
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build project
+      run: npm run build
+
+    - name: Prepare environment for E2E tests
+      run: sh e2e-tests-prep.sh
+
+    - name: Run E2E tests
+      run: sh e2e-tests-run.sh
+
+    - name: Clean up environment after E2E tests
+      run: sh e2e-tests-clean.sh
