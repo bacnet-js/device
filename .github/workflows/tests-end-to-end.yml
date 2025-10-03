@@ -21,6 +21,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} / Node ${{ matrix.node-version }} ${{ matrix.arch }}
 
+    permissions:
+      contents: read
+      packages: read
+
     steps:
 
     - name: Checkout code
