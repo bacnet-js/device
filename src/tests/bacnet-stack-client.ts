@@ -2,7 +2,7 @@
 import { ObjectType, PropertyIdentifier } from '@bacnet-js/client';
 
 const bsExec = async (bin: string, args: string[]) => {
-  const res = await fetch('http://bacnet-stack-server:3000', {
+  const res = await fetch('http://bacnet-stack-runner:3000', {
     method: 'POST',
     body: `${bin} ${args.map(a => `"${a}"`).join(' ')}`,
   });

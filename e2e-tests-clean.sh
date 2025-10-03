@@ -1,3 +1,3 @@
 
-docker stop bacnet-stack-server && docker rm bacnet-stack-server
+docker stop bacnet-stack-runner && docker rm bacnet-stack-runner
 docker network rm bacnet-js
