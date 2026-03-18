@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.6.0 - 2025-10-03
+#### Features
+- object-level destroy() methods (#22) - (69422bd) - Jacopo Scazzosi
+#### Miscellaneous Chores
+- uses docker image from ghcr.io for e2e tests (#24) - (2e3bc73) - Jacopo Scazzosi
+- updates docs - (086de9c) - Jacopo Scazzosi
+- automating e2e tests with bacnet-stack (#23) - (334989a) - Jacopo Scazzosi
+
+- - -
+
 ## v0.5.0 - 2025-09-28
 #### Miscellaneous Chores
 - fixes cocogitto's config re: broken reference to git tag - (d531c0b) - Jacopo Scazzosi
