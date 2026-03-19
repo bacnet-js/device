@@ -1,7 +1,6 @@
+import { ApplicationTag, ObjectType, PropertyIdentifier } from '@bacnet-js/client';
 
-import { ObjectType, PropertyIdentifier } from '@bacnet-js/client';
-
-const bsExec = async (bin: string, args: string[]) => {
+export const bsExec = async (bin: string, args: string[]) => {
   const res = await fetch('http://bacnet-stack-runner:3000', {
     method: 'POST',
     body: `${bin} ${args.map(a => `"${a}"`).join(' ')}`,
@@ -14,6 +13,32 @@ const bsExec = async (bin: string, args: string[]) => {
   throw new Error(err);
 };
 
-export const bsReadProperty = async (devIn: number, objType: ObjectType, objIn: number, propId: PropertyIdentifier) => {
-  return await bsExec('bacrp', [`${devIn}`, `${objType}`, `${objIn}`, `${propId}`]);
+export const bsReadProperty = async (devIn: number, objType: ObjectType, objIn: number, propId: PropertyIdentifier, index?: number) => {
+  const args = [`${devIn}`, `${objType}`, `${objIn}`, `${propId}`];
+  if (index !== undefined) {
+    args.push(`${index}`);
+  }
+  return await bsExec('bacrp', args);
+};
+
+export const bsWriteProperty = async (
+  devIn: number,
+  objType: ObjectType,
+  objIn: number,
+  propId: PropertyIdentifier,
+  priority: number,
+  tag: ApplicationTag,
+  value: string | number,
+  index: number = -1,
+) => {
+  return await bsExec('bacwp', [
+    `${devIn}`,
+    `${objType}`,
+    `${objIn}`,
+    `${propId}`,
+    `${priority}`,
+    `${index}`,
+    `${tag}`,
+    `${value}`,
+  ]);
 };
