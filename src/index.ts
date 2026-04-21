@@ -52,6 +52,7 @@ export {
   type BDDeviceOpts,
   type BDSubscription,
   type BDDeviceEvents,
+  type BDObjectNumberingProvider,
 } from './objects/device/types.js';
 
 export * from './objects/numeric/analogoutput.js';
