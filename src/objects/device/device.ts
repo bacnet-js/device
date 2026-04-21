@@ -53,6 +53,7 @@ import {
   type BDDeviceOpts,
   type BDDeviceEvents,
   type BDQueuedCov,
+  type BDObjectNumberingProvider,
 } from './types.js';
 
 import {
@@ -60,6 +61,7 @@ import {
 } from '../structuredview.js';
 
 import {
+    DefaultObjectNumberingProvider,
   sendConfirmedCovNotification,
   sendUnconfirmedCovNotification,
 } from './utils.js'
@@ -129,10 +131,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
 
   readonly #knownDevices: Map<number, IAMResult>;
 
-  /**
-   * Dictionary of next instance numbers for each object type.
-   */
-  readonly #nextInstanceNumber: Partial<Record<ObjectType, number>>;
+  readonly #objectNumberingProvider: BDObjectNumberingProvider;
 
   readonly objectList: BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
   readonly structuredObjectList: BDPolledArrayProperty<ApplicationTag.OBJECTIDENTIFIER>;
@@ -190,7 +189,8 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     this.#covqueue = fastq.promise(null, this.#covQueueWorker, 1);
     this.#subscriptions = new SubscriptionStore();
 
-    this.#nextInstanceNumber = Object.create(null);
+    this.#objectNumberingProvider = opts.objectNumberingProvider
+      ?? new DefaultObjectNumberingProvider();
 
     this.#client = new BACnetClient(opts)
       .on('whoHas', this.#onBacnetWhoHas)
@@ -365,10 +365,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   addObject<T extends BDObject>(object: T): T {
     const type = object.objectType.getValue();
     object.___setDevice(this);
-    if (!(type in this.#nextInstanceNumber)) {
-      this.#nextInstanceNumber[type] = 1;
-    }
-    object.___setIdentifier(this.#nextInstanceNumber[type]!++);
+    object.___setIdentifier(this.#objectNumberingProvider.nextInstanceNumber(object));
     this.#objects.set(getObjectUID(object.identifier.value), object);
     this.#objectData.push(object.identifier);
     object.on('aftercov', this.#onChildAfterCov);

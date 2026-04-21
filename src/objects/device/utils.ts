@@ -1,5 +1,9 @@
 
 import {
+  type ObjectType,
+} from '@bacnet-js/client';
+
+import {
   type BACNetClientType,
   ensureArray,
 } from '../../utils.js';
@@ -11,7 +15,12 @@ import {
 import {
   type BDSubscription,
   type BDQueuedCov,
+  type BDObjectNumberingProvider,
 } from './types.js';
+
+import {
+  type BDObject,
+} from '../generic/object.js';
 
 /**
  * Sends a confirmed COV (Change of Value) notification to a subscriber
@@ -58,3 +67,24 @@ export const sendUnconfirmedCovNotification = async (client: BACNetClientType, e
     [{ property: { id: cov.property.identifier }, value: ensureArray(cov.data) }],
   );
 };
+
+/**
+ * Default object numbering provider implementation.
+ *
+ * @internal
+ */
+export class DefaultObjectNumberingProvider implements BDObjectNumberingProvider {
+
+  #nextInstanceNumberByType: Map<ObjectType, number>;
+
+  constructor() {
+    this.#nextInstanceNumberByType = new Map();
+  }
+
+  nextInstanceNumber<O extends BDObject>(object: O): number {
+    const next = this.#nextInstanceNumberByType.get(object.type) ?? 1;
+    this.#nextInstanceNumberByType.set(object.type, next + 1);
+    return next;
+  }
+
+}

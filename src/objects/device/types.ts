@@ -19,6 +19,7 @@ import {
   ApplicationTag,
   type ApplicationTagValueTypeMap,
 } from '@bacnet-js/client';
+
 /**
  * Represents a subscription to COV (Change of Value) notifications
  *
@@ -171,4 +172,22 @@ export interface BDDeviceOpts extends ClientOptions, BDObjectOpts {
    * e.g. "SN-12345-6789"
    */
   serialNumber?: string;
+
+  /**
+   * Provider for custom numbering of device objects.
+   */
+  objectNumberingProvider?: BDObjectNumberingProvider;
+}
+
+/**
+ * Models a provider of object numbering.
+ */
+export interface BDObjectNumberingProvider {
+
+  /**
+   * Returns the next instance number for the given object.
+   * This number is scoped to this provider instance and is
+   * unique within such scope.
+   */
+  nextInstanceNumber<O extends BDObject>(object: O): number;
 }

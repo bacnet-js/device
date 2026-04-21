@@ -188,6 +188,10 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
 
   }
 
+  get type(): ObjectType {
+    return this.objectType.getValue();
+  }
+
   get identifier(): BACNetAppData<ApplicationTag.OBJECTIDENTIFIER> {
     if (this.#identifier) {
       return this.#identifier;
