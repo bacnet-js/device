@@ -4,7 +4,7 @@ import {
   BDPolledArrayProperty,
 } from '../properties/index.js';
 
-import { BDObject } from './generic/object.js';
+import { BDObject, type BDObjectOpts } from './generic/object.js';
 
 import {
   ObjectType,
@@ -14,11 +14,7 @@ import {
   type BACNetAppData,
 } from '@bacnet-js/client';
 
-import {
-  type BDDevice,
-} from './device/device.js';
-
-export interface BDStructuredViewOpts {
+export interface BDStructuredViewOpts extends BDObjectOpts {
   name: string,
   description?: string,
   nodeType?: NodeType,
@@ -40,7 +36,7 @@ export class BDStructuredView extends BDObject {
 
   constructor(opts: BDStructuredViewOpts) {
 
-    super(ObjectType.STRUCTURED_VIEW, opts.name, opts.description);
+    super(ObjectType.STRUCTURED_VIEW, opts);
 
     this.#subordinates = new Set();
     this.#subortinateData = [];

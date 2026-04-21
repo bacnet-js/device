@@ -2,6 +2,7 @@
 import {
   type BDObject,
   type BDObjectEvents,
+  type BDObjectOpts,
 } from '../generic/object.js';
 
 import {
@@ -99,7 +100,7 @@ export interface BDDeviceEvents extends BDObjectEvents {
  * This interface defines the parameters required to initialize a BACnet Device,
  * including identification, vendor information, and protocol configuration.
  */
-export interface BDDeviceOpts extends ClientOptions {
+export interface BDDeviceOpts extends ClientOptions, BDObjectOpts {
 
   /**
    * The device's name (Object_Name property)

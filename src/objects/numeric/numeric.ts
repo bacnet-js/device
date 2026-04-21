@@ -1,6 +1,6 @@
 
 import { BDSingletProperty } from '../../properties/index.js';
-import { BDObject } from '../generic/object.js';
+import { BDObject, type BDObjectOpts } from '../generic/object.js';
 import {
   ObjectType,
   ApplicationTag,
@@ -9,7 +9,7 @@ import {
   type BACNetObjectID,
 } from '@bacnet-js/client';
 
-export interface BDNumericValueOpts {
+export interface BDNumericValueOpts extends BDObjectOpts {
   name: string,
   unit: EngineeringUnits,
   writable?: boolean,
@@ -45,7 +45,7 @@ export class BDNumericObject<Tag extends BDNumericApplicationTag> extends BDObje
   readonly minPresentValue: BDSingletProperty<Tag>;
 
   constructor(type: ObjectType, tag: Tag, opts: BDNumericValueOpts) {
-    super(type, opts.name, opts.description);
+    super(type, opts);
 
     this.presentValue = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.PRESENT_VALUE, tag, opts.writable ?? false, opts.presentValue));

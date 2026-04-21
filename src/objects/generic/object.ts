@@ -53,6 +53,10 @@ import type { BDDevice } from '../device/device.js';
 export interface BDObjectEvents extends EventMap {
   /** Emitted after a property value has changed */
   aftercov: [data: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>, object: BDObject],
+  /** Emitted when the object's {@link BDObject#outOfService | Out_Of_Service} property is set to `false`, either from the network or locally */
+  inservice: [],
+  /** Emitted when the object's {@link BDObject#outOfService | Out_Of_Service} property is set to `true`, either from the network or locally */
+  outofservice: [],
 }
 
 /**
@@ -67,6 +71,33 @@ const unlistedProperties: PropertyIdentifier[] = [
   PropertyIdentifier.OBJECT_IDENTIFIER,
   PropertyIdentifier.PROPERTY_LIST,
 ];
+
+/**
+ * Common options for all BACnet objects
+ *
+ * This interface defines the base configuration parameters shared by every
+ * BACnet object type. Subclass-specific option interfaces (e.g.
+ * {@link BDNumericValueOpts}, {@link BDBinaryValueOpts}) extend this
+ * interface with additional properties.
+ */
+export interface BDObjectOpts {
+  /** The object's name (`Object_Name` property) */
+  name: string;
+  /** An optional textual description of the object (`Description` property) */
+  description?: string;
+  /**
+   * Whether the `Out_Of_Service` property is writable from the BACnet network.
+   *
+   * When `true`, remote BACnet clients can set the object's `Out_Of_Service`
+   * property to `TRUE` or `FALSE`. Changing the property causes the object to
+   * emit an {@link BDObjectEvents.outofservice | outofservice}
+   * or {@link BDObjectEvents.inservice | inservice} event accordingly. Default
+   * is `false`.
+   *
+   * @defaultValue `false`
+   */
+  writableOutOfService?: boolean;
+}
 
 /**
  * Base class for all BACnet objects
@@ -113,7 +144,7 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
    * Creates a new BACnet object
    *
    */
-  constructor(type: ObjectType, name: string, description: string = '') {
+  constructor(type: ObjectType, opts: BDObjectOpts) {
 
     super();
 
@@ -122,7 +153,7 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     this.#propertyList = [];
 
     this.objectName = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.OBJECT_NAME, ApplicationTag.CHARACTER_STRING, false, name));
+      PropertyIdentifier.OBJECT_NAME, ApplicationTag.CHARACTER_STRING, false, opts.name));
 
     this.objectType = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.OBJECT_TYPE, ApplicationTag.ENUMERATED, false, type));
@@ -134,10 +165,10 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
       PropertyIdentifier.PROPERTY_LIST, () => this.#propertyList));
 
     this.description = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.DESCRIPTION, ApplicationTag.CHARACTER_STRING, false, description));
+      PropertyIdentifier.DESCRIPTION, ApplicationTag.CHARACTER_STRING, false, opts.description ?? ''));
 
     this.outOfService = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.OUT_OF_SERVICE, ApplicationTag.BOOLEAN, false, false));
+      PropertyIdentifier.OUT_OF_SERVICE, ApplicationTag.BOOLEAN, opts.writableOutOfService ?? false, false));
 
     this.statusFlags = this.addProperty(new BDSingletProperty<ApplicationTag.BIT_STRING, StatusFlagsBitString>(
       PropertyIdentifier.STATUS_FLAGS, ApplicationTag.BIT_STRING, false, new StatusFlagsBitString()));
@@ -147,6 +178,14 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
 
     this.reliability = this.addProperty(new BDSingletProperty<ApplicationTag.ENUMERATED, Reliability>(
       PropertyIdentifier.RELIABILITY, ApplicationTag.ENUMERATED, false, Reliability.NO_FAULT_DETECTED));
+
+    this.outOfService.on('aftercov', (raw) => {
+      if (raw.value) {
+        this.___emit('outofservice');
+      } else {
+        this.___emit('inservice');
+      }
+    });
 
   }
 
@@ -162,6 +201,10 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
       return this.#device;
     }
     throw new Error('Cannot get object device: object has not been added to a device yet');
+  }
+
+  isOutOfService(): boolean {
+    return this.outOfService.getValue();
   }
 
   /**
