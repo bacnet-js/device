@@ -75,17 +75,16 @@ export const sendUnconfirmedCovNotification = async (client: BACNetClientType, e
  */
 export class DefaultObjectNumberingProvider implements BDObjectNumberingProvider {
 
-  #nextInstanceNumberByType: Partial<Record<ObjectType, number>>;
+  #nextInstanceNumberByType: Map<ObjectType, number>;
 
   constructor() {
-    this.#nextInstanceNumberByType = Object.create(null);
+    this.#nextInstanceNumberByType = new Map();
   }
 
   nextInstanceNumber<O extends BDObject>(object: O): number {
-    if (!(object.type in this.#nextInstanceNumberByType)) {
-      this.#nextInstanceNumberByType[object.type] = 1;
-    }
-    return this.#nextInstanceNumberByType[object.type]!++;
+    const next = this.#nextInstanceNumberByType.get(object.type) ?? 1;
+    this.#nextInstanceNumberByType.set(object.type, next + 1);
+    return next;
   }
 
 }
