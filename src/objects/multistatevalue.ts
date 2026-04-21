@@ -7,7 +7,7 @@ import {
   BDPolledSingletProperty,
 } from '../properties/index.js';
 
-import { BDObject } from './generic/object.js';
+import { BDObject, type BDObjectOpts } from './generic/object.js';
 
 import {
   ObjectType,
@@ -20,7 +20,7 @@ import {
 
 import { BDError } from '../errors.js';
 
-export interface BDMultiStateValueOpts {
+export interface BDMultiStateValueOpts extends BDObjectOpts {
   name: string,
   states: [first: string, ...rest: string[]],
   writable?: boolean,
@@ -38,7 +38,7 @@ export class BDMultiStateValue extends BDObject {
 
     assert(opts.states.length > 0, 'states array must not be empty');
 
-    super(ObjectType.MULTI_STATE_VALUE, opts.name, opts.description);
+    super(ObjectType.MULTI_STATE_VALUE, opts);
 
     const numberOfStatesValue = opts.states.length;
 

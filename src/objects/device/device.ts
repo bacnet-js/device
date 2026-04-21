@@ -176,7 +176,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    * @see {@link https://kargs.net/BACnet/Foundations2012-BACnetDeviceID.pdf}
    */
   constructor(instance: number, opts: BDDeviceOpts) {
-    super(ObjectType.DEVICE, opts.name, opts.description);
+    super(ObjectType.DEVICE, opts);
 
     this.#vendorId = opts.vendorId ?? 0;
     this.#knownDevices = new Map();

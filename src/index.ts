@@ -42,6 +42,7 @@ export {
 
 export {
   type BDObjectEvents,
+  type BDObjectOpts,
   BDObject,
 } from './objects/generic/object.js';
 
