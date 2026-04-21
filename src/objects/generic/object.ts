@@ -76,8 +76,7 @@ const unlistedProperties: PropertyIdentifier[] = [
  * Common options for all BACnet objects
  *
  * This interface defines the base configuration parameters shared by every
- * BACnet object type. Subclass-specific option interfaces (e.g.
- * {@link BDNumericValueOpts}, {@link BDBinaryValueOpts}) extend this
+ * BACnet object type. Subclass-specific option interfaces extend this
  * interface with additional properties.
  */
 export interface BDObjectOpts {
