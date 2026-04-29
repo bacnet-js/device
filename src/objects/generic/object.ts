@@ -252,11 +252,11 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
    * @throws BACnetError if the property does not exist
    * @internal
    */
-  async ___writeProperty(identifier: BACNetPropertyID, value: BACNetAppData | BACNetAppData[]): Promise<void> {
+  async ___writeProperty(identifier: BACNetPropertyID, value: BACNetAppData | BACNetAppData[], priority: number): Promise<void> {
     const property = this.#properties.get(identifier.id as PropertyIdentifier);
     // TODO: test/validate value before setting it!
     if (property) {
-      await property.___writeData(value);
+      await property.___writeData(value, priority);
     } else {
       throw new BDError('unknown property', ErrorCode.UNKNOWN_PROPERTY, ErrorClass.PROPERTY);
     }

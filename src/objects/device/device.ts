@@ -39,6 +39,7 @@ import bacnet, {
   ServicesSupportedBitString,
   ObjectTypesSupported,
   ObjectTypesSupportedBitString,
+  type WritePropertyRequest,
 } from '@bacnet-js/client';
 
 import {
@@ -718,13 +719,8 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
   #onBacnetWriteProperty = (req: WritePropertyContent) => {
     debug('req #%s: writeProperty');
     this.#wrapReqHandler(req, async () => {
-      const { header, service, invokeId, payload: { objectId, property, value } } = req;
-      const _value = value?.value;
-      const _property = value?.property ?? property;
-      if (!_value || !_property) {
-        throw new BDError('inconsistent parameters', ErrorCode.INCONSISTENT_PARAMETERS, ErrorClass.SERVICES);
-      }
-      await this.#getObjectByIdOrThrow(objectId).___writeProperty(_property, _value);
+      const { header, service, invokeId, payload: { objectId, value: { value, property, priority } } } = req;
+      await this.#getObjectByIdOrThrow(objectId).___writeProperty(property, value, priority);
       this.#client.simpleAckResponse(header!.sender, service!, invokeId!);
     });
   };
