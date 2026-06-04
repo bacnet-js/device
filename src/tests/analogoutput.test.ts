@@ -155,11 +155,13 @@ describe('AnalogOutput (multiple objects)', () => {
       name: 'Valve Output',
       unit: EngineeringUnits.PERCENT,
       presentValue: 50,
+      writable: true,
     }));
     device.addObject(new BDAnalogOutput({
       name: 'Damper Output',
       unit: EngineeringUnits.PERCENT,
       presentValue: 75,
+      writable: true,
     }));
   });
 
