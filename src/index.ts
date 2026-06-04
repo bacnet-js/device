@@ -24,6 +24,7 @@ export {
 export {
   type BDPropertyEvents,
   type BDPropertyAccessContext,
+  type BDPropertyCoVListener,
   BDPropertyType,
   BDAbstractProperty,
   BDArrayProperty,
@@ -35,6 +36,7 @@ export {
 export {
   type BDObjectEvents,
   type BDObjectOpts,
+  type BDObjectCoVListener,
   BDObject,
 } from './objects/generic/object.js';
 

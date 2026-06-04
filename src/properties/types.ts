@@ -12,8 +12,6 @@ import {
 /**
  * Maps the names of property events to the respective arrays of arguments.
  * Used to strongly type calls to `AsyncEventEmitter.prototype.on()`.
- *
- * @see {@link AsyncEventEmitter}
  */
 export interface BDPropertyEvents<
   Tag extends ApplicationTag,
