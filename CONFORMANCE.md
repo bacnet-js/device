@@ -66,25 +66,17 @@ defined by the BACnet specifications.
 The following table summarizes the implementation status of each object type
 defined by the BACnet specifications.
 
-Conformance levels for object types are defined as follows:
-
-- **Basic**: All required properties are supported. Some optional properties
-  might be supported, with no guarantees. Maintaining a consistent object
-  representation across properties is left to consumers.
-- **Required**: All required properties are supported and kept consistent with
-  each other. Some optional properties might be supported, with no guarantees.
-
-| Status | Object type | Level |
-| --- | --- | --- |
-| ✅ | ANALOG_INPUT | basic |
-| ✅ | ANALOG_OUTPUT | basic |
-| ✅ | ANALOG_VALUE | basic |
+| Status | Object type | Notes |
+| --- | --- | |
+| ✅ | ANALOG_INPUT | |
+| ✅ | ANALOG_OUTPUT | |
+| ✅ | ANALOG_VALUE | |
 | ❌ | BINARY_INPUT | |
 | ❌ | BINARY_OUTPUT | |
-| ✅ | BINARY_VALUE | basic |
+| ✅ | BINARY_VALUE | |
 | ❌ | CALENDAR | |
 | ❌ | COMMAND | |
-| ✅ | DEVICE | basic |
+| ✅ | DEVICE | |
 | ❌ | EVENT_ENROLLMENT | |
 | ❌ | FILE | |
 | ❌ | GROUP | |
@@ -95,7 +87,7 @@ Conformance levels for object types are defined as follows:
 | ❌ | PROGRAM | |
 | ❌ | SCHEDULE | |
 | ❌ | AVERAGING | |
-| ✅ | MULTI_STATE_VALUE | basic |
+| ✅ | MULTI_STATE_VALUE | |
 | ❌ | TREND_LOG | |
 | ❌ | LIFE_SAFETY_POINT | |
 | ❌ | LIFE_SAFETY_ZONE | |
@@ -116,17 +108,17 @@ Conformance levels for object types are defined as follows:
 | ❌ | CREDENTIAL_DATA_INPUT | |
 | ❌ | NETWORK_SECURITY | |
 | ❌ | BITSTRING_VALUE | |
-| ✅ | CHARACTERSTRING_VALUE | basic |
+| ✅ | CHARACTERSTRING_VALUE | |
 | ❌ | DATEPATTERN_VALUE | |
-| ✅ | DATE_VALUE | basic|
+| ✅ | DATE_VALUE | |
 | ❌ | DATETIMEPATTERN_VALUE | |
-| ✅ | DATETIME_VALUE | basic |
-| ✅ | INTEGER_VALUE | basic |
+| ✅ | DATETIME_VALUE | |
+| ✅ | INTEGER_VALUE | |
 | ❌ | LARGE_ANALOG_VALUE | |
 | ❌ | OCTETSTRING_VALUE | |
-| ✅ | POSITIVE_INTEGER_VALUE | basic |
+| ✅ | POSITIVE_INTEGER_VALUE | |
 | ❌ | TIMEPATTERN_VALUE | |
-| ✅ | TIME_VALUE | basic |
+| ✅ | TIME_VALUE | |
 | ❌ | NOTIFICATION_FORWARDER | |
 | ❌ | ALERT_ENROLLMENT | |
 | ❌ | CHANNEL | |
@@ -137,12 +129,19 @@ Conformance levels for object types are defined as follows:
 | ❌ | ESCALATOR | |
 | ❌ | LIFT | |
 
+Note that maintaining a consistent object representation across properties
+is an on-going effort, some of which is left to consumers.
+
 As an example of what we mean by maintaining consistency across properties,
 consider the constraints described in section `12.8.4` of the specification:
 
 > _If Present_Value is commandable for a given instance, then the Priority_Array
 > and Relinquish_Default properties shall also be present for that instance.
 > The Present_Value property shall be writable when  Out_Of_Service is TRUE._
+
+Presently, this library maintains consistency across `Present_Value`,
+`Priority_Array`, `Relinquish_Default` and `Current_Command_Priority` but does
+not change the writability of `Present_Value` according to `Out_Of_Service`.
 
 Note that consumers of this library can use the `BDObject`, `BDSingletProperty`
 and `BDArrayProperty` primitives to add support for object types and properties
