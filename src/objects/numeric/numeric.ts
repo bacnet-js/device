@@ -1,5 +1,6 @@
 
 import { BDSingletProperty } from '../../properties/index.js';
+import { BDPresentValueSingletProperty } from '../../properties/singlet/presentvalue.js';
 import { BDObject, type BDObjectOpts } from '../generic/object.js';
 import {
   ObjectType,
@@ -47,8 +48,20 @@ export class BDNumericObject<Tag extends BDNumericApplicationTag> extends BDObje
   constructor(type: ObjectType, tag: Tag, opts: BDNumericValueOpts) {
     super(type, opts);
 
-    this.presentValue = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.PRESENT_VALUE, tag, opts.writable ?? false, opts.presentValue));
+    this.presentValue = this.addProperty(opts.writable
+      ? new BDPresentValueSingletProperty<Tag>(
+          PropertyIdentifier.PRESENT_VALUE,
+          tag,
+          true,
+          opts.presentValue,
+        )
+      : new BDSingletProperty<Tag>(
+          PropertyIdentifier.PRESENT_VALUE,
+          tag,
+          false,
+          opts.presentValue,
+        )
+    );
 
     this.engineeringUnit = this.addProperty(new BDSingletProperty(
       PropertyIdentifier.UNITS, ApplicationTag.ENUMERATED, false, opts.unit));
