@@ -1,34 +1,35 @@
 
-export { 
+export {
   BDAbstractProperty,
 } from './abstract.js';
 
-export {  
+export {
   BDSingletProperty,
 } from './singlet/singlet.js';
 
-export {  
+export {
   BDPolledSingletProperty,
 } from './singlet/polled.js';
 
-export {  
+export {
   BDAbstractSingletProperty,
 } from './singlet/abstract.js';
 
-export { 
+export {
   BDArrayProperty,
 } from './array/array.js';
 
-export { 
+export {
   BDPolledArrayProperty,
 } from './array/polled.js';
 
-export { 
+export {
   BDAbstractArrayProperty,
 } from './array/abstract.js';
 
 export {
   type BDPropertyEvents,
   type BDPropertyAccessContext,
+  type BDPropertyCoVListener,
   BDPropertyType,
 } from './types.js';
