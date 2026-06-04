@@ -44,7 +44,10 @@ export const isNumericApplicationTag = (tag: ApplicationTag): tag is Application
   return tag === ApplicationTag.REAL || tag === ApplicationTag.SIGNED_INTEGER || tag === ApplicationTag.UNSIGNED_INTEGER;
 };
 
-export const APPDATA_NULL: BACNetAppData<ApplicationTag.NULL> = Object.freeze({
+// TODO: this used to be frozen via `Object.freeze` but we had to temporarily
+//       allow changes due to the invasive consistency enforcement flagged in
+//       https://github.com/bacnet-js/client/issues/79 .
+export const APPDATA_NULL: BACNetAppData<ApplicationTag.NULL> = {
   type: ApplicationTag.NULL,
   value: null,
-});
+};
