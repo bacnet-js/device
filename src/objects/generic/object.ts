@@ -8,7 +8,7 @@
  * @module
  */
 
-import { AsyncEventEmitter, type EventMap } from '../../events.js';
+import { EventEmitter } from 'node:events';
 
 import { BDError } from '../../errors.js';
 
@@ -46,11 +46,18 @@ import { MAX_ARRAY_INDEX } from '../../constants.js';
 import { TaskQueue, type Task } from '../../taskqueue.js';
 
 import type { BDDevice } from '../device/device.js';
+import type { BDPropertyCoVListener } from '../../properties/types.js';
+
+export type BDObjectCoVListener = (
+  data: BACNetAppData | BACNetAppData[],
+  property: BDAbstractProperty<any, any, any>,
+  object: BDObject,
+) => Promise<void>;
 
 /**
  * Events that can be emitted by a BACnet object
  */
-export interface BDObjectEvents extends EventMap {
+export interface BDObjectEvents extends Record<string, any[]> {
   /** Emitted after a property value has changed */
   aftercov: [data: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>, object: BDObject],
   /** Emitted when the object's {@link BDObject#outOfService | Out_Of_Service} property is set to `false`, either from the network or locally */
@@ -107,10 +114,11 @@ export interface BDObjectOpts {
  *
  * @extends AsyncEventEmitter<BDObjectEvents>
  */
-export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
+export class BDObject extends EventEmitter<BDObjectEvents> {
 
   #device?: BDDevice;
   #identifier?: BACNetAppData<ApplicationTag.OBJECTIDENTIFIER>;
+  #cov_listeners: BDObjectCoVListener[] = [];
 
 
   /**
@@ -180,9 +188,9 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
 
     this.outOfService.on('aftercov', (raw) => {
       if (raw.value) {
-        this.___emit('outofservice');
+        this.emit('outofservice');
       } else {
-        this.___emit('inservice');
+        this.emit('inservice');
       }
     });
 
@@ -229,7 +237,10 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     if (!unlistedProperties.includes(property.identifier)) {
       this.#propertyList.push({ type: ApplicationTag.ENUMERATED, value: property.identifier });
     }
-    property.on('aftercov', this.#onPropertyAfterCov);
+    property.addCoVListener(this.#onPropertyAfterCov);
+    for (const related of property.___getRelatedProperties()) {
+      this.addProperty(related);
+    }
     return property;
   }
 
@@ -241,6 +252,15 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
   destroy() {
     this.#queue.kill();
   }
+
+  addCoVListener(listener: BDObjectCoVListener) {
+    this.#cov_listeners.push(listener);
+  }
+
+  removeCoVListener(listener: BDObjectCoVListener) {
+    this.#cov_listeners = this.#cov_listeners.filter(l => l !== listener);
+  }
+
 
   /**
    * Writes a value to a property
@@ -364,6 +384,12 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
     }
   }
 
+  async #fireCoVListeners(data: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>): Promise<void> {
+    for (const listener of this.#cov_listeners) {
+      await listener(data, property, this);
+    }
+  }
+
   /**
    * Handler for property 'aftercov' events
    *
@@ -374,8 +400,9 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
    * @param value - The new value that was set
    * @private
    */
-  #onPropertyAfterCov = async (value: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>) => {
-    await this.___asyncEmitSeries(false, 'aftercov', value, property, this);
+  #onPropertyAfterCov: BDPropertyCoVListener<any, any, any> = async (value: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>) => {
+    await this.#fireCoVListeners(value, property);
+    this.emit('aftercov', value, property, this);
   };
 
 }

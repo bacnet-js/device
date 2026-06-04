@@ -6,11 +6,6 @@ import {
 } from '@bacnet-js/client';
 
 import {
-  type EventMap,
-  AsyncEventEmitter,
-} from '../events.js';
-
-import {
   type BDAbstractProperty,
 } from './abstract.js';
 
@@ -24,12 +19,8 @@ export interface BDPropertyEvents<
   Tag extends ApplicationTag,
   Type extends ApplicationTagValueTypeMap[Tag],
   Data extends BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[],
-> extends EventMap {
-  /**
-   * Emitted before a property value changes. Listeners can throw in order to
-   * block the change from going through (useful for additional validation).
-   */
-  beforecov: [raw: Data, property: BDAbstractProperty<Tag, Type, Data>],
+> extends Record<string, any[]> {
+
   /**
    * Emitted after a property value has changed. Errors throws by listeners
    * will be ignored.
@@ -55,3 +46,15 @@ export interface BDPropertyAccessContext {
   /** The date and time at which the property is being accessed. */
   date: Date;
 }
+
+export type BDPropertyValidatorFn<
+  Tag extends ApplicationTag,
+  Type extends ApplicationTagValueTypeMap[Tag],
+  Data extends BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[],
+  > = (data: Data) => void;
+
+export type BDPropertyCoVListener<
+  Tag extends ApplicationTag,
+  Type extends ApplicationTagValueTypeMap[Tag],
+  Data extends BACNetAppData<Tag, Type> | BACNetAppData<Tag, Type>[],
+> = (data: Data, property: BDAbstractProperty<Tag, Type, Data>) => Promise<void>;

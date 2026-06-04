@@ -1,5 +1,6 @@
 
 import { BDSingletProperty } from '../properties/index.js';
+import { BDPresentValueSingletProperty } from '../properties/singlet/presentvalue.js';
 import { BDObject, type BDObjectOpts } from './generic/object.js';
 import {
   ObjectType,
@@ -22,8 +23,22 @@ export class BDCharacterStringValue extends BDObject {
   constructor(opts: BDCharacterStringValueOpts) {
     super(ObjectType.CHARACTERSTRING_VALUE, opts);
 
-    this.presentValue = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.PRESENT_VALUE, ApplicationTag.CHARACTER_STRING, opts.writable ?? false, opts.presentValue ?? '', CharacterStringEncoding.UTF_8));
+    this.presentValue = this.addProperty(opts.writable
+      ? new BDPresentValueSingletProperty(
+          PropertyIdentifier.PRESENT_VALUE,
+          ApplicationTag.CHARACTER_STRING,
+          true,
+          opts.presentValue ?? '',
+          CharacterStringEncoding.UTF_8,
+        )
+      : new BDSingletProperty(
+          PropertyIdentifier.PRESENT_VALUE,
+          ApplicationTag.CHARACTER_STRING,
+          false,
+          opts.presentValue ?? '',
+          CharacterStringEncoding.UTF_8,
+        )
+    );
 
   }
 }
