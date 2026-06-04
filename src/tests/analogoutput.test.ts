@@ -1,5 +1,5 @@
 import { it, describe, beforeEach, afterEach } from 'node:test';
-import { deepStrictEqual, match } from 'node:assert';
+import { deepStrictEqual, match, rejects } from 'node:assert';
 import { BDDevice } from '../objects/device/device.js';
 import { bsReadProperty, bsWriteProperty } from './bacnet-stack-client.js';
 import { BDAnalogOutput } from '../objects/numeric/analogoutput.js';
@@ -22,6 +22,7 @@ describe('AnalogOutput', () => {
       covIncrement: 2,
       minPresentValue: 0,
       maxPresentValue: 100,
+      writable: true,
     }));
   });
 
@@ -96,7 +97,7 @@ describe('AnalogOutput', () => {
 
   it('should read the object\'s Relinquish_Default property', async () => {
     const value = await bsReadProperty(1, ObjectType.ANALOG_OUTPUT, 1, PropertyIdentifier.RELINQUISH_DEFAULT);
-    deepStrictEqual(parseFloat(value), 0);
+    deepStrictEqual(parseFloat(value), 75);
   });
 
   it('should read the object\'s Priority_Array property', async () => {
@@ -192,8 +193,8 @@ describe('AnalogOutput (multiple objects)', () => {
   it('should read Relinquish_Default from both objects', async () => {
     const value1 = await bsReadProperty(1, ObjectType.ANALOG_OUTPUT, 1, PropertyIdentifier.RELINQUISH_DEFAULT);
     const value2 = await bsReadProperty(1, ObjectType.ANALOG_OUTPUT, 2, PropertyIdentifier.RELINQUISH_DEFAULT);
-    deepStrictEqual(parseFloat(value1), 0);
-    deepStrictEqual(parseFloat(value2), 0);
+    deepStrictEqual(parseFloat(value1), 50);
+    deepStrictEqual(parseFloat(value2), 75);
   });
 
   it('should read Priority_Array from both objects', async () => {
@@ -202,6 +203,45 @@ describe('AnalogOutput (multiple objects)', () => {
     const value2 = await bsReadProperty(1, ObjectType.ANALOG_OUTPUT, 2, PropertyIdentifier.PRIORITY_ARRAY);
     deepStrictEqual(value1.trim(), allNull);
     deepStrictEqual(value2.trim(), allNull);
+  });
+
+});
+
+describe('AnalogOutput (not commandable, no priority array)', () => {
+
+  let device: BDDevice;
+
+  beforeEach(async () => {
+    device = new BDDevice(1, {
+      name: 'Test Device',
+    });
+    device.on('error', console.error);
+    device.addObject(new BDAnalogOutput({
+      name: 'Read-only AO',
+      unit: EngineeringUnits.PERCENT,
+      presentValue: 50,
+    }));
+  });
+
+  afterEach(async () => {
+    device.destroy();
+  });
+
+  it('should not expose a Priority_Array when not commandable', async () => {
+    await rejects(bsReadProperty(1, ObjectType.ANALOG_OUTPUT, 1, PropertyIdentifier.PRIORITY_ARRAY));
+  });
+
+  it('should not expose a Relinquish_Default when not commandable', async () => {
+    await rejects(bsReadProperty(1, ObjectType.ANALOG_OUTPUT, 1, PropertyIdentifier.RELINQUISH_DEFAULT));
+  });
+
+  it('should not expose a Current_Command_Priority when not commandable', async () => {
+    await rejects(bsReadProperty(1, ObjectType.ANALOG_OUTPUT, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY));
+  });
+
+  it('should still expose Present_Value', async () => {
+    const value = await bsReadProperty(1, ObjectType.ANALOG_OUTPUT, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(value.trim(), '50.000000');
   });
 
 });
