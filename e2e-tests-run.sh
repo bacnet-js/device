@@ -4,6 +4,7 @@ docker run \
   --volume ./:/app \
   --workdir /app \
   --network bacnet-js \
-  --env DEBUG="*" \
   "node:$(node -e "process.stdout.write(process.version.slice(1,3))")-alpine" \
   node --enable-source-maps --test --test-concurrency=1 dist/tests/*.js
+
+# Add `--env DEBUG="*"` to see debug output
