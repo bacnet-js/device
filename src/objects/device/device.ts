@@ -696,13 +696,10 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     this.#wrapReqHandler(req, async () => {
       const { header, invokeId, payload: { properties } } = req;
       if (!header) return;
-      const values: BACNetReadAccess[] = [];
-      for (const { objectId, properties: objProperties } of properties) {
-        const object = this.#objects.get(getObjectUID(objectId));
-        if (object) {
-          values.push(await object.___readPropertyMultiple(objProperties));
-        }
-      }
+      const values: BACNetReadAccess[] = await Promise.all(properties.map(({ objectId, properties: objProperties }) => {
+        const object = this.#getObjectByIdOrThrow(objectId);
+        return object.___readPropertyMultiple(objProperties);
+      }));
       this.#client.readPropertyMultipleResponse(header.sender, invokeId!, values);
     });
   };

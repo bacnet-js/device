@@ -320,16 +320,13 @@ export class BDObject extends AsyncEventEmitter<BDObjectEvents> {
       return this.___readPropertyMultipleAll();
     }
     const ctx: BDPropertyAccessContext = { date: new Date() };
-    const values: BACNetReadAccess['values'] = [];
-    for (const identifier of identifiers) {
-      const property = this.#properties.get(identifier.id);
-      if (property) {
-        values.push({
-          property: identifier,
-          value: ensureArray(property.___readData(identifier.index, ctx))
-        });
-      }
-    }
+    const values: BACNetReadAccess['values'] = await Promise.all(identifiers.map((identifier) => {
+      const property = this.___getPropertyOrThrow(identifier.id);
+      return {
+        property: identifier,
+        value: ensureArray(property.___readData(identifier.index, ctx))
+      };
+    }));
     return { objectId: this.identifier.value, values };
   }
 
