@@ -52,7 +52,7 @@ src/
 │   ├── index.ts                    # Property exports
 │   ├── abstract.ts                 # BDAbstractProperty base class
 │   ├── types.ts                    # Property-related types
-│   ├── singlet/                    # BDSingletProperty, BDPolledSingletProperty
+│   ├── singlet/                    # BDSingletProperty, BDPolledSingletProperty, BDPresentValueSingletProperty
 │   └── array/                      # BDArrayProperty, BDPolledArrayProperty
 ├── tests/                          # E2E tests (see "Testing" below)
 │   ├── bacnet-stack-client.ts      # HTTP bridge to bacnet-stack CLI tools
@@ -111,7 +111,7 @@ child objects and pushes CoV notifications to subscribers through a FIFO queue.
 
 ### Key design patterns
 
-- **Event-driven CoV propagation**: property change → object event → device
+- **Listener-drive CoV propagation**: property change → object event → device
   queues notifications to all relevant subscribers.
 - **Per-object task queues**: all property reads and writes are serialized
   through `TaskQueue` to prevent race conditions.
