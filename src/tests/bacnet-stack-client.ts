@@ -21,6 +21,24 @@ export const bsReadProperty = async (devIn: number, objType: ObjectType, objIn: 
   return await bsExec('bacrp', args);
 };
 
+export const bsReadMultiple = async (devIn: number, tuples: [objType: ObjectType, objIn: number, propId: PropertyIdentifier, index?: number][]) => {
+  // bacrpm 123 analog-input 77 85 analog-input 78 85
+  const args = tuples.flatMap((tuple) => {
+    const ser = [`${tuple[0]}`, `${tuple[1]}`];
+    if (tuple[3] !== undefined) {
+      ser.push(`${tuple[2]}[${tuple[3]}]`);
+    } else {
+      ser.push(`${tuple[2]}`);
+    }
+    return ser;
+  });
+  args.unshift(`${devIn}`);
+  const res = await bsExec('bacrpm', args)
+  return res.replaceAll(/\r?\n/g, ' ')
+    .replaceAll(/\s+/g, ' ')
+    .trim();
+};
+
 export const bsWriteProperty = async (
   devIn: number,
   objType: ObjectType,
