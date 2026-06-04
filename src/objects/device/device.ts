@@ -1,10 +1,15 @@
 
 import {
+  type EventEmitter
+} from 'node:events';
+
+import {
   BDError,
 } from '../../errors.js';
 
 import {
   BDObject,
+  type BDObjectCoVListener,
 } from '../generic/object.js';
 
 import {
@@ -70,7 +75,6 @@ import {
 import { device as debug } from '../../debug.js';
 
 import fastq from 'fastq';
-import { AsyncEventEmitter } from '../../events.js';
 import { SubscriptionStore } from './subscriptionstore.js';
 import { getObjectUID, getPropertyUID, type BDObjectUID } from '../../uids.js';
 import { BDNumericObject } from '../numeric/numeric.js';
@@ -104,7 +108,7 @@ const { default: BACnetClient } = bacnet;
  *
  * @extends BDObject
  */
-export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEvents> {
+export class BDDevice extends BDObject implements EventEmitter<BDDeviceEvents> {
 
   /**
    * @see https://bacnet.org/assigned-vendor-ids/
@@ -218,7 +222,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     this.#objects.set(getObjectUID(this.identifier.value), this);
     this.#objectData.push(this.identifier);
 
-    this.on('aftercov', this.#onChildAfterCov);
+    this.addCoVListener(this.#onChildAfterCov);
 
     // ================== PROPERTIES RELATED TO CHILD OBJECTS =================
 
@@ -369,7 +373,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     object.___setIdentifier(this.#objectNumberingProvider.nextInstanceNumber(object));
     this.#objects.set(getObjectUID(object.identifier.value), object);
     this.#objectData.push(object.identifier);
-    object.on('aftercov', this.#onChildAfterCov);
+    object.addCoVListener(this.#onChildAfterCov);
     return object;
   }
 
@@ -398,11 +402,11 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
     super.destroy();
     this.#client.close();
     this.#covqueue.kill();
-    this.removeListener('aftercov', this.#onChildAfterCov);
+    this.removeCoVListener(this.#onChildAfterCov);
     for (const object of this.#objects.values()) {
       if (object !== this) {
         object.destroy();
-        object.removeListener('aftercov', this.#onChildAfterCov);
+        object.removeCoVListener(this.#onChildAfterCov);
       }
     }
     this.#client
@@ -505,7 +509,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    * @param data - The new value
    * @private
    */
-  #onChildAfterCov = async (data: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>, object: BDObject) => {
+  #onChildAfterCov: BDObjectCoVListener = async (data: BACNetAppData | BACNetAppData[], property: BDAbstractProperty<any, any, any>, object: BDObject) => {
     // We do not `await` the promise as we do not want slow consumers of
     // confirmed CoV notifications in the BACnet network to indirectly block
     // further operations on this object.
@@ -777,7 +781,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    */
   #onBacnetError = (err: Error) => {
     debug('server error', err);
-    this.___emit('error', err);
+    this.emit('error', err);
   };
 
   /**
@@ -790,7 +794,7 @@ export class BDDevice extends BDObject implements AsyncEventEmitter<BDDeviceEven
    */
   #onBacnetListening = () => {
     debug('server is listening');
-    this.___emit('listening');
+    this.emit('listening');
   };
 
 

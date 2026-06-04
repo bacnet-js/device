@@ -36,9 +36,10 @@ export class BDSingletProperty<
   }
 
   async setData(data: BACNetAppData<Tag, Type>, priority: number = 16) {
-    await this.___asyncEmitSeries(true, 'beforecov', data, this);
+    this.___validateData(data);
     this.#data = data;
-    await this.___asyncEmitSeries(false, 'aftercov', data, this);
+    await this.___fireCoVListeners(data);
+    this.emit('aftercov', data, this);
   }
 
   async setValue(value: Type, priority: number = 16): Promise<void> {

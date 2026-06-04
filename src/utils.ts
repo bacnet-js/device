@@ -1,5 +1,5 @@
 
-import bacnet, { ApplicationTag } from '@bacnet-js/client';
+import bacnet, { ApplicationTag, type BACNetAppData } from '@bacnet-js/client';
 
 const { default: BACnetClient } = bacnet;
 
@@ -10,7 +10,7 @@ export type BACNetClientType = InstanceType<typeof BACnetClient>;
 
 /**
  * Ensures that a value or array of values is returned as an array
- * 
+ *
  * @param val - A single value or array of values
  * @returns An array containing the input value(s)
  * @typeParam T - The type of the values
@@ -30,16 +30,21 @@ export const PROCESS_START_DATE = new Date();
 export const STD_TZ_OFFSET = Math.max(
   new Date(PROCESS_START_DATE.getFullYear(), 0, 1).getTimezoneOffset(),
   new Date(PROCESS_START_DATE.getFullYear(), 6, 1).getTimezoneOffset(),
-); 
+);
 
 /**
  * Returns whether daylight saving time is in effect for a given date,
  * relative to the local time zone of the computer running this code.
  */
-export const isDstInEffect = (date: Date): boolean => { 
+export const isDstInEffect = (date: Date): boolean => {
   return date.getTimezoneOffset() < STD_TZ_OFFSET;
 };
 
 export const isNumericApplicationTag = (tag: ApplicationTag): tag is ApplicationTag.REAL | ApplicationTag.UNSIGNED_INTEGER | ApplicationTag.SIGNED_INTEGER => {
   return tag === ApplicationTag.REAL || tag === ApplicationTag.SIGNED_INTEGER || tag === ApplicationTag.UNSIGNED_INTEGER;
 };
+
+export const APPDATA_NULL: BACNetAppData<ApplicationTag.NULL> = Object.freeze({
+  type: ApplicationTag.NULL,
+  value: null,
+});

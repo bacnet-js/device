@@ -22,14 +22,6 @@ export {
 } from './uids.js';
 
 export {
-  type EventMap,
-  type EventKey,
-  type EventArgs,
-  type EventListener,
-  AsyncEventEmitter,
-} from './events.js';
-
-export {
   type BDPropertyEvents,
   type BDPropertyAccessContext,
   BDPropertyType,

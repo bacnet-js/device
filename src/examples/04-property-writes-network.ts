@@ -19,9 +19,9 @@ const analogValue = device.addObject(new BDAnalogValue({
   presentValue: 0,
 }));
 
-// Use the `beforecov` event to validate value writes originating from the
+// Provide validators to validate value writes originating from the
 // BACnet network. Throwing will cause requests to be rejected.
-analogValue.presentValue.on('beforecov', async (data: BACNetAppData) => {
+analogValue.presentValue.addValidator((data: BACNetAppData) => {
   console.log('Before write: %s', data);
   if (data.value < 0) {
     throw new Error('Value must be non-negative');
@@ -29,7 +29,15 @@ analogValue.presentValue.on('beforecov', async (data: BACNetAppData) => {
 });
 
 // Use the `aftercov` event to be notified of successfulvalue writes having
-// originated from the BACnet network.
-analogValue.presentValue.on('aftercov', async (data: BACNetAppData) => {
+// originated from the BACnet network. If you need to perform asynchronous
+// operations use a CoV listener to ensure backpressure is managed correctly.
+analogValue.presentValue.on('aftercov', (data: BACNetAppData) => {
   console.log('New value written: %s', data);
+});
+
+// Use a CoV listener to perform asynchronous operations after a value write.
+// Using CoV listeners ensures that backpressure is managed correctly.
+analogValue.presentValue.addCoVListener(async (data: BACNetAppData) => {
+  console.log('New value written: %s', data);
+  // do something async
 });
