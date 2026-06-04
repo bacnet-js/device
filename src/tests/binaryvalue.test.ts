@@ -201,3 +201,66 @@ describe('BinaryValue (multiple objects)', () => {
   });
 
 });
+
+describe('BinaryValue (writable, priority array)', () => {
+
+  let device: BDDevice;
+
+  beforeEach(async () => {
+    device = new BDDevice(1, {
+      name: 'Test Device',
+    });
+    device.on('error', console.error);
+    device.addObject(new BDBinaryValue({
+      name: 'Priority BV',
+      writable: true,
+      presentValue: BinaryPV.INACTIVE,
+    }));
+  });
+
+  afterEach(async () => {
+    device.destroy();
+  });
+
+  it('should have all-null Priority_Array initially', async () => {
+    const value = await bsReadProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRIORITY_ARRAY);
+    deepStrictEqual(value.trim(), '{Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null}');
+  });
+
+  it('should have Relinquish_Default matching the initial presentValue', async () => {
+    const value = await bsReadProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.RELINQUISH_DEFAULT);
+    deepStrictEqual(value.trim(), 'inactive');
+  });
+
+  it('should read Current_Command_Priority as 16 initially', async () => {
+    const value = await bsReadProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY);
+    deepStrictEqual(parseInt(value.trim()), 16);
+  });
+
+  it('should update Present_Value when writing ACTIVE at priority 8', async () => {
+    await bsWriteProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.ENUMERATED, BinaryPV.ACTIVE);
+    const value = await bsReadProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(value.trim(), 'active');
+  });
+
+  it('should update Current_Command_Priority after writing at priority 8', async () => {
+    await bsWriteProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.ENUMERATED, BinaryPV.ACTIVE);
+    const value = await bsReadProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY);
+    deepStrictEqual(parseInt(value.trim()), 8);
+  });
+
+  it('should revert Present_Value to Relinquish_Default after releasing priority with NULL', async () => {
+    await bsWriteProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.ENUMERATED, BinaryPV.ACTIVE);
+    await bsWriteProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.NULL, 0);
+    const value = await bsReadProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(value.trim(), 'inactive');
+  });
+
+  it('should restore all-null Priority_Array after releasing priority', async () => {
+    await bsWriteProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.ENUMERATED, BinaryPV.ACTIVE);
+    await bsWriteProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.NULL, 0);
+    const value = await bsReadProperty(1, ObjectType.BINARY_VALUE, 1, PropertyIdentifier.PRIORITY_ARRAY);
+    deepStrictEqual(value.trim(), '{Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null}');
+  });
+
+});

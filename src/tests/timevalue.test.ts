@@ -1,9 +1,9 @@
 import { it, describe, beforeEach, afterEach } from 'node:test';
 import { deepStrictEqual, match } from 'node:assert';
 import { BDDevice } from '../objects/device/device.js';
-import { bsReadProperty } from './bacnet-stack-client.js';
+import { bsReadProperty, bsWriteProperty } from './bacnet-stack-client.js';
 import { BDTimeValue } from '../objects/temporal/timevalue.js';
-import { ObjectType, PropertyIdentifier } from '@bacnet-js/client';
+import { ApplicationTag, ObjectType, PropertyIdentifier } from '@bacnet-js/client';
 
 describe('TimeValue', () => {
 
@@ -172,6 +172,60 @@ describe('TimeValue (multiple objects)', () => {
     const value2 = await bsReadProperty(1, ObjectType.TIME_VALUE, 2, PropertyIdentifier.OBJECT_IDENTIFIER);
     deepStrictEqual(value1.trim(), '(time-value, 1)');
     deepStrictEqual(value2.trim(), '(time-value, 2)');
+  });
+
+});
+
+describe('TimeValue (writable)', () => {
+
+  let device: BDDevice;
+
+  beforeEach(async () => {
+    device = new BDDevice(1, { name: 'Test Device' });
+    device.on('error', console.error);
+    device.addObject(new BDTimeValue({
+      name: 'Writable TV',
+      writable: true,
+      presentValue: new Date('2025-06-15T08:00:00.000Z'),
+    }));
+  });
+
+  afterEach(async () => {
+    device.destroy();
+  });
+
+  it('should have all-null Priority_Array initially', async () => {
+    const value = await bsReadProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.PRIORITY_ARRAY);
+    deepStrictEqual(value.trim(), '{Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null}');
+  });
+
+  it('should have a readable Relinquish_Default', async () => {
+    const value = await bsReadProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.RELINQUISH_DEFAULT);
+    match(value.trim(), /\d{2}:\d{2}:\d{2}\.\d{2}/);
+  });
+
+  it('should read Current_Command_Priority as 16 initially', async () => {
+    const value = await bsReadProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY);
+    deepStrictEqual(value.trim(), '16');
+  });
+
+  it('should write a new time value and read it back', async () => {
+    await bsWriteProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.TIME, '10:00:00.00');
+    const value = await bsReadProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(value.trim(), '10:00:00.00');
+  });
+
+  it('should update Current_Command_Priority after writing at a priority', async () => {
+    await bsWriteProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.TIME, '10:00:00.00');
+    const value = await bsReadProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY);
+    deepStrictEqual(value.trim(), '8');
+  });
+
+  it('should revert Present_Value to Relinquish_Default after releasing priority', async () => {
+    await bsWriteProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.TIME, '10:00:00.00');
+    await bsWriteProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.NULL, 0);
+    const value = await bsReadProperty(1, ObjectType.TIME_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    match(value.trim(), /\d{2}:\d{2}:\d{2}\.\d{2}/);
   });
 
 });

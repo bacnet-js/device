@@ -1,5 +1,5 @@
 import { it, describe, beforeEach, afterEach } from 'node:test';
-import { deepStrictEqual } from 'node:assert';
+import { deepStrictEqual, match } from 'node:assert';
 import { BDDevice } from '../objects/device/device.js';
 import { bsReadProperty } from './bacnet-stack-client.js';
 import { BDDateValue } from '../objects/temporal/datevalue.js';
@@ -198,6 +198,41 @@ describe('DateValue (multiple objects)', () => {
     const value2 = await bsReadProperty(1, ObjectType.DATE_VALUE, 2, PropertyIdentifier.OBJECT_IDENTIFIER);
     deepStrictEqual(value1.trim(), '(date-value, 1)');
     deepStrictEqual(value2.trim(), '(date-value, 2)');
+  });
+
+});
+
+describe('DateValue (writable)', () => {
+
+  let device: BDDevice;
+
+  beforeEach(async () => {
+    device = new BDDevice(1, { name: 'Test Device' });
+    device.on('error', console.error);
+    device.addObject(new BDDateValue({
+      name: 'Writable DV',
+      writable: true,
+      presentValue: new Date('2025-01-15T00:00:00.000Z'),
+    }));
+  });
+
+  afterEach(async () => {
+    device.destroy();
+  });
+
+  it('should have all-null Priority_Array initially', async () => {
+    const value = await bsReadProperty(1, ObjectType.DATE_VALUE, 1, PropertyIdentifier.PRIORITY_ARRAY);
+    deepStrictEqual(value.trim(), '{Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null}');
+  });
+
+  it('should have a readable Relinquish_Default', async () => {
+    const value = await bsReadProperty(1, ObjectType.DATE_VALUE, 1, PropertyIdentifier.RELINQUISH_DEFAULT);
+    match(value.trim(), /\w+,\s+\w+\s+\d+,\s+\d{4}/);
+  });
+
+  it('should read Current_Command_Priority as 16 initially', async () => {
+    const value = await bsReadProperty(1, ObjectType.DATE_VALUE, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY);
+    deepStrictEqual(value.trim(), '16');
   });
 
 });

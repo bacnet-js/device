@@ -28,7 +28,7 @@ export const bsWriteProperty = async (
   propId: PropertyIdentifier,
   priority: number,
   tag: ApplicationTag,
-  value: string | number,
+  value: string | number | null,
   index: number = -1,
 ) => {
   return await bsExec('bacwp', [

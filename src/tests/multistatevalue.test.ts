@@ -1,5 +1,5 @@
 import { it, describe, beforeEach, afterEach } from 'node:test';
-import { deepStrictEqual } from 'node:assert';
+import { deepStrictEqual, rejects } from 'node:assert';
 import { BDDevice } from '../objects/device/device.js';
 import { bsReadProperty, bsWriteProperty } from './bacnet-stack-client.js';
 import { BDMultiStateValue } from '../objects/multistatevalue.js';
@@ -275,6 +275,88 @@ describe('MultiStateValue (multiple objects)', () => {
     const value2 = await bsReadProperty(1, ObjectType.MULTI_STATE_VALUE, 2, PropertyIdentifier.OBJECT_IDENTIFIER);
     deepStrictEqual(value1.trim(), '(multi-state-value, 1)');
     deepStrictEqual(value2.trim(), '(multi-state-value, 2)');
+  });
+
+});
+
+describe('MultiStateValue (writable, validation)', () => {
+
+  let device: BDDevice;
+
+  beforeEach(async () => {
+    device = new BDDevice(1, { name: 'Test Device' });
+    device.on('error', console.error);
+    device.addObject(new BDMultiStateValue({
+      name: 'Validated MSV',
+      states: ['Off', 'Low', 'Medium', 'High'],
+      writable: true,
+      presentValue: 1,
+    }));
+  });
+
+  afterEach(async () => {
+    device.destroy();
+  });
+
+  it('should reject a write with state index 0 (below range)', async () => {
+    await rejects(bsWriteProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.UNSIGNED_INTEGER, 0));
+  });
+
+  it('should reject a write with state index exceeding numberOfStates', async () => {
+    await rejects(bsWriteProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.UNSIGNED_INTEGER, 5));
+  });
+
+  it('should leave Present_Value unchanged after a rejected write', async () => {
+    await rejects(bsWriteProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.UNSIGNED_INTEGER, 5));
+    const value = await bsReadProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseInt(value), 1);
+  });
+
+  it('should accept a write with the maximum valid state index', async () => {
+    await bsWriteProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.UNSIGNED_INTEGER, 4);
+    const value = await bsReadProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseInt(value), 4);
+  });
+
+  it('should accept a write with state index 1 (minimum)', async () => {
+    await bsWriteProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.UNSIGNED_INTEGER, 4);
+    await bsWriteProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.UNSIGNED_INTEGER, 1);
+    const value = await bsReadProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseInt(value), 1);
+  });
+
+});
+
+describe('MultiStateValue (validator - two-state)', () => {
+
+  let device: BDDevice;
+
+  beforeEach(async () => {
+    device = new BDDevice(1, { name: 'Test Device' });
+    device.on('error', console.error);
+    device.addObject(new BDMultiStateValue({
+      name: 'Two-State MSV',
+      states: ['Closed', 'Open'],
+      writable: true,
+      presentValue: 1,
+    }));
+  });
+
+  afterEach(async () => {
+    device.destroy();
+  });
+
+  it('should reject a write with state index 3 (out of range for two states)', async () => {
+    await rejects(bsWriteProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.UNSIGNED_INTEGER, 3));
+  });
+
+  it('should accept writes for both valid states', async () => {
+    await bsWriteProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.UNSIGNED_INTEGER, 2);
+    const value2 = await bsReadProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseInt(value2), 2);
+    await bsWriteProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 16, ApplicationTag.UNSIGNED_INTEGER, 1);
+    const value1 = await bsReadProperty(1, ObjectType.MULTI_STATE_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseInt(value1), 1);
   });
 
 });
