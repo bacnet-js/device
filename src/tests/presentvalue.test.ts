@@ -51,8 +51,20 @@ describe('BDPresentValueSingletProperty - Priority Array (AnalogValue)', () => {
     deepStrictEqual(parseFloat(value), 50);
   });
 
+  it('should update Priority_Array at the written priority slot after a local write', async () => {
+    await av.presentValue.setValue(50, 8);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRIORITY_ARRAY, 8);
+    deepStrictEqual(parseFloat(value), 50);
+  });
+
   it('should reflect the written value in Present_Value after writing at a priority', async () => {
     await bsWriteProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRESENT_VALUE, 8, ApplicationTag.REAL, 50);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseFloat(value), 50);
+  });
+
+  it('should reflect the written value in Present_Value after locally writing at a priority', async () => {
+    await av.presentValue.setValue(50, 8);
     const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
     deepStrictEqual(parseFloat(value), 50);
   });
