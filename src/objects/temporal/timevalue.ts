@@ -1,28 +1,18 @@
 
-import { BDSingletProperty } from '../../properties/index.js';
-import { BDObject, type BDObjectOpts } from '../generic/object.js';
-import {
-  ObjectType,
-  ApplicationTag,
-  PropertyIdentifier,
-} from '@bacnet-js/client';
+import { ObjectType, ApplicationTag } from '@bacnet-js/client';
+import { BDTemporalObject, type BDTemporalValueOpts } from './temporal.js';
 
-export interface BDTimeValueOpts extends BDObjectOpts {
+export interface BDTimeValueOpts extends BDTemporalValueOpts {
   name: string,
   writable?: boolean,
   description?: string,
   presentValue?: Date,
 }
 
-export class BDTimeValue extends BDObject {
-
-  readonly presentValue: BDSingletProperty<ApplicationTag.TIME>;
+export class BDTimeValue extends BDTemporalObject<ApplicationTag.TIME> {
 
   constructor(opts: BDTimeValueOpts) {
-    super(ObjectType.TIME_VALUE, opts);
-
-    this.presentValue = this.addProperty(new BDSingletProperty(
-      PropertyIdentifier.PRESENT_VALUE, ApplicationTag.TIME, opts.writable ?? false, opts.presentValue ?? new Date()));
-
+    super(ObjectType.TIME_VALUE, ApplicationTag.TIME, opts);
   }
+
 }
