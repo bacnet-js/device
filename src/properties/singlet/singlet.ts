@@ -46,6 +46,14 @@ export class BDSingletProperty<
     await this.setData({ ...this.getData(), value }, priority);
   }
 
+  async clearDataAtPriority(priority: number): Promise<void> {
+    throw new BDError('Cannot clear data of property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
+  }
+
+  async clearValueAtPriority(priority: number): Promise<void> {
+    throw new BDError('Cannot clear value of property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
+  }
+
   /**
    *
    * @internal

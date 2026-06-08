@@ -137,6 +137,148 @@ describe('BDPresentValueSingletProperty - Priority Array (AnalogValue)', () => {
 
 });
 
+// ─── describe block 3: clearValueAtPriority ────────────────────────────────────
+
+describe('BDPresentValueSingletProperty - clearValueAtPriority (AnalogValue)', () => {
+
+  let device: BDDevice;
+  let av: BDAnalogValue;
+
+  const ALL_NULL = '{Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null}';
+
+  beforeEach(async () => {
+    device = new BDDevice(1, { name: 'Test Device' });
+    device.on('error', console.error);
+    av = new BDAnalogValue({
+      name: 'Test AV ClearValue',
+      unit: EngineeringUnits.DEGREES_CELSIUS,
+      presentValue: 25,
+      writable: true,
+    });
+    device.addObject(av);
+  });
+
+  afterEach(async () => {
+    device.destroy();
+  });
+
+  it('should clear the priority array slot after clearValueAtPriority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.clearValueAtPriority(8);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRIORITY_ARRAY, 8);
+    deepStrictEqual(value.trim(), 'Null');
+  });
+
+  it('should revert Present_Value to Relinquish_Default after clearing the only active priority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.clearValueAtPriority(8);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseFloat(value), 25);
+  });
+
+  it('should restore all-null Priority_Array after clearing the only active priority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.clearValueAtPriority(8);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRIORITY_ARRAY);
+    deepStrictEqual(value.trim(), ALL_NULL);
+  });
+
+  it('should restore Current_Command_Priority to 16 after clearing the only active priority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.clearValueAtPriority(8);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY);
+    deepStrictEqual(parseInt(value, 10), 16);
+  });
+
+  it('should revert Present_Value to the lower priority when the higher priority is cleared', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.setValue(80, 4);
+    await av.presentValue.clearValueAtPriority(4);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseFloat(value), 50);
+  });
+
+  it('should update Current_Command_Priority to the lower priority after clearing the higher priority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.setValue(80, 4);
+    await av.presentValue.clearValueAtPriority(4);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY);
+    deepStrictEqual(parseInt(value, 10), 8);
+  });
+
+});
+
+// ─── describe block 4: clearDataAtPriority ───────────────────────────────────
+
+describe('BDPresentValueSingletProperty - clearDataAtPriority (AnalogValue)', () => {
+
+  let device: BDDevice;
+  let av: BDAnalogValue;
+
+  const ALL_NULL = '{Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null,Null}';
+
+  beforeEach(async () => {
+    device = new BDDevice(1, { name: 'Test Device' });
+    device.on('error', console.error);
+    av = new BDAnalogValue({
+      name: 'Test AV ClearData',
+      unit: EngineeringUnits.DEGREES_CELSIUS,
+      presentValue: 25,
+      writable: true,
+    });
+    device.addObject(av);
+  });
+
+  afterEach(async () => {
+    device.destroy();
+  });
+
+  it('should clear the priority array slot after clearDataAtPriority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.clearDataAtPriority(8);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRIORITY_ARRAY, 8);
+    deepStrictEqual(value.trim(), 'Null');
+  });
+
+  it('should revert Present_Value to Relinquish_Default after clearing the only active priority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.clearDataAtPriority(8);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseFloat(value), 25);
+  });
+
+  it('should restore all-null Priority_Array after clearing the only active priority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.clearDataAtPriority(8);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRIORITY_ARRAY);
+    deepStrictEqual(value.trim(), ALL_NULL);
+  });
+
+  it('should restore Current_Command_Priority to 16 after clearing the only active priority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.clearDataAtPriority(8);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY);
+    deepStrictEqual(parseInt(value, 10), 16);
+  });
+
+  it('should revert Present_Value to the lower priority when the higher priority is cleared', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.setValue(80, 4);
+    await av.presentValue.clearDataAtPriority(4);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.PRESENT_VALUE);
+    deepStrictEqual(parseFloat(value), 50);
+  });
+
+  it('should update Current_Command_Priority to the lower priority after clearing the higher priority', async () => {
+    await av.presentValue.setValue(50, 8);
+    await av.presentValue.setValue(80, 4);
+    await av.presentValue.clearDataAtPriority(4);
+    const value = await bsReadProperty(1, ObjectType.ANALOG_VALUE, 1, PropertyIdentifier.CURRENT_COMMAND_PRIORITY);
+    deepStrictEqual(parseInt(value, 10), 8);
+  });
+
+});
+
 // ─── describe block 2: Priority 1 (highest) ──────────────────────────────────
 
 describe('BDPresentValueSingletProperty - Priority 1 (highest) (AnalogValue)', () => {

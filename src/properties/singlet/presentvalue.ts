@@ -82,4 +82,12 @@ export class BDPresentValueSingletProperty<
     await super.setData(this.#relinquishDefault.getData());
   }
 
+  override async clearDataAtPriority(priority: number): Promise<void> {
+    await this.setData(APPDATA_NULL as BACNetAppData<Tag, Type>, priority);
+  }
+
+  override async clearValueAtPriority(priority: number): Promise<void> {
+    return this.clearDataAtPriority(priority);
+  }
+
 }

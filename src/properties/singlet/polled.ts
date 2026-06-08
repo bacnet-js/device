@@ -59,6 +59,14 @@ export class BDPolledSingletProperty<
     throw new BDError('Cannot set value of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
   }
 
+  async clearDataAtPriority(priority: number): Promise<void> {
+    throw new BDError('Cannot clear data of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
+  }
+
+  async clearValueAtPriority(priority: number): Promise<void> {
+    throw new BDError('Cannot clear value of polled property', ErrorCode.WRITE_ACCESS_DENIED, ErrorClass.PROPERTY);
+  }
+
   /**
    *
    * @internal
