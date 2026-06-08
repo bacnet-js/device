@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.8.0 - 2026-06-08
+#### Features
+- dedicated methods for clearing out specific command priorities - (4d6fafe) - Jacopo Scazzosi
+
+- - -
+
 ## v0.7.0 - 2026-06-08
 #### Features
 - <span style="background-color: #d73a49; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 0.85em;">BREAKING</span>refactored cov propagation and validation to separate concerns, separate sync vs. async workflows and allow validation separate from value changes, started updating objects - (78104aa) - Jacopo Scazzosi
