@@ -67,7 +67,7 @@ The following table summarizes the implementation status of each object type
 defined by the BACnet specifications.
 
 | Status | Object type | Notes |
-| --- | --- | |
+| --- | --- | --- |
 | ✅ | ANALOG_INPUT | |
 | ✅ | ANALOG_OUTPUT | |
 | ✅ | ANALOG_VALUE | |
