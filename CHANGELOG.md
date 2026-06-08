@@ -2,6 +2,47 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.7.0 - 2026-06-08
+#### Features
+- <span style="background-color: #d73a49; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 0.85em;">BREAKING</span>refactored cov propagation and validation to separate concerns, separate sync vs. async workflows and allow validation separate from value changes, started updating objects - (78104aa) - Jacopo Scazzosi
+- scaffolding for propagating priority in write property requests to setData() handlers - (3200066) - Jacopo Scazzosi
+- custom object numbering (merge PR #31) - (a50aa4c) - Jacopo Scazzosi
+- adds support for custom object numbering - (f0a7773) - Jacopo Scazzosi
+- Out_Of_Service handling (merge PR #30) - (729c362) - Jacopo Scazzosi
+- adds handling of Out_Of_Service property - (e12a760) - Jacopo Scazzosi
+#### Miscellaneous Chores
+- updates docs - (00c8c75) - Jacopo Scazzosi
+- fixes minor doc issues - (994e090) - Jacopo Scazzosi
+- adds a couple tests focusing on in-process writes - (c0c96b7) - Jacopo Scazzosi
+- updates conformance file - (f63e6ca) - Jacopo Scazzosi
+- drops node 22.x from test targets, adds node 26.x - (57602cb) - Jacopo Scazzosi
+- adds tests - (82384de) - Jacopo Scazzosi
+- disables debug output in e2e tests (exceedinly noisy output) - (912d82b) - Jacopo Scazzosi
+- updates AGENTS.md - (2805b98) - Jacopo Scazzosi
+- fixes broken tests due to missing properties - (4e39024) - Jacopo Scazzosi
+- fixes validation on multistatevalue objects - (342738b) - Jacopo Scazzosi
+- uses new presentvalue property across all object types - (412ec99) - Jacopo Scazzosi
+- updates @bacnet-js/client to version 3.3.2 for https://github.com/bacnet-js/client/pull/78 - (bf442f6) - Jacopo Scazzosi
+- makes e2e test scripts executable - (ffb986a) - Jacopo Scazzosi
+- fixes ReadPropertyMultiple ignoring unknown objects/properties (closes #33) - (8defc9b) - Jacopo Scazzosi
+- replaces pojo with a Map instance for tracking object numbers in the default numbering provider - (7381b43) - Jacopo Scazzosi
+- updates doc - (bad50ac) - Jacopo Scazzosi
+- updates dependencies, updates tsconfig.json to work with typescript 6.x - (d51f217) - Jacopo Scazzosi
+- adds example dedicated to Out_Of_Service handling - (7184b6a) - Jacopo Scazzosi
+- updates doc - (5d39eda) - Jacopo Scazzosi
+- removes broken typedoc links - (5883285) - Jacopo Scazzosi
+- exports BDObjectOpts interface - (2fd7ca2) - Jacopo Scazzosi
+- updates doc - (9a800df) - Jacopo Scazzosi
+- drops node 20.x and adds node 25.x as test targets - (15fb865) - Jacopo Scazzosi
+- fixes concurrency and glob pattern in e2e test runner - (65f01ea) - Jacopo Scazzosi
+- adds basic set of integration tests (Claude Opus 4.6 via Zed) - (9b1664c) - Jacopo Scazzosi
+- adds AGENTS.md file - (c4becf4) - Jacopo Scazzosi
+- forces e2e test script to use docker image same node version as host machine - (cb81865) - Jacopo Scazzosi
+- updates @bacnet-js/client to v3.3.0 (minor) - (8023f2f) - Jacopo Scazzosi
+- adds node 22.x and 24.x as test targets - (52beeb5) - Jacopo Scazzosi
+
+- - -
+
 ## v0.6.0 - 2025-10-03
 #### Features
 - object-level destroy() methods (#22) - (69422bd) - Jacopo Scazzosi
